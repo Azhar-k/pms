@@ -4,7 +4,9 @@ import com.klm.pms.dto.RoomDTO;
 import com.klm.pms.mapper.RoomMapper;
 import com.klm.pms.model.Room;
 import com.klm.pms.model.Room.RoomStatus;
+import com.klm.pms.model.RoomType;
 import com.klm.pms.repository.RoomRepository;
+import com.klm.pms.repository.RoomTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,9 @@ public class RoomService {
     private RoomRepository roomRepository;
 
     @Autowired
+    private RoomTypeRepository roomTypeRepository;
+
+    @Autowired
     private RoomMapper roomMapper;
 
     public RoomDTO createRoom(RoomDTO roomDTO) {
@@ -28,7 +33,12 @@ public class RoomService {
             throw new RuntimeException("Room with number " + roomDTO.getRoomNumber() + " already exists");
         }
         
+        // Fetch and validate room type
+        RoomType roomType = roomTypeRepository.findById(roomDTO.getRoomTypeId())
+                .orElseThrow(() -> new RuntimeException("Room type not found with id: " + roomDTO.getRoomTypeId()));
+        
         Room room = roomMapper.toEntity(roomDTO);
+        room.setRoomType(roomType);
         Room savedRoom = roomRepository.save(room);
         return roomMapper.toDTO(savedRoom);
     }
@@ -44,8 +54,15 @@ public class RoomService {
             }
         }
         
+        // Fetch and validate room type if it's being changed
+        if (roomDTO.getRoomTypeId() != null && 
+            (existingRoom.getRoomType() == null || !roomDTO.getRoomTypeId().equals(existingRoom.getRoomType().getId()))) {
+            RoomType roomType = roomTypeRepository.findById(roomDTO.getRoomTypeId())
+                    .orElseThrow(() -> new RuntimeException("Room type not found with id: " + roomDTO.getRoomTypeId()));
+            existingRoom.setRoomType(roomType);
+        }
+        
         existingRoom.setRoomNumber(roomDTO.getRoomNumber());
-        existingRoom.setRoomType(roomDTO.getRoomType());
         existingRoom.setPricePerNight(roomDTO.getPricePerNight());
         if (roomDTO.getStatus() != null) {
             existingRoom.setStatus(roomDTO.getStatus());
@@ -90,8 +107,12 @@ public class RoomService {
     }
 
     @Transactional(readOnly = true)
-    public List<RoomDTO> getRoomsByType(String roomType) {
-        return roomRepository.findByRoomType(roomType).stream()
+    public List<RoomDTO> getRoomsByType(Long roomTypeId) {
+        // Validate room type exists
+        if (!roomTypeRepository.existsById(roomTypeId)) {
+            throw new RuntimeException("Room type not found with id: " + roomTypeId);
+        }
+        return roomRepository.findByRoomTypeId(roomTypeId).stream()
                 .map(roomMapper::toDTO)
                 .collect(Collectors.toList());
     }

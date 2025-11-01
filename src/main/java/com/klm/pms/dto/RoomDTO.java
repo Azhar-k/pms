@@ -13,8 +13,8 @@ public class RoomDTO {
     @NotBlank(message = "Room number is required")
     private String roomNumber;
     
-    @NotBlank(message = "Room type is required")
-    private String roomType;
+    @NotNull(message = "Room type ID is required")
+    private Long roomTypeId;
     
     @NotNull(message = "Price per night is required")
     @Positive(message = "Price must be positive")
@@ -27,6 +27,9 @@ public class RoomDTO {
     private Integer floor;
     private Boolean hasBalcony;
     private Boolean hasView;
+    
+    // Nested DTO for response
+    private RoomTypeDTO roomType;
 
     // Constructors
     public RoomDTO() {
@@ -49,11 +52,19 @@ public class RoomDTO {
         this.roomNumber = roomNumber;
     }
 
-    public String getRoomType() {
+    public Long getRoomTypeId() {
+        return roomTypeId;
+    }
+
+    public void setRoomTypeId(Long roomTypeId) {
+        this.roomTypeId = roomTypeId;
+    }
+
+    public RoomTypeDTO getRoomType() {
         return roomType;
     }
 
-    public void setRoomType(String roomType) {
+    public void setRoomType(RoomTypeDTO roomType) {
         this.roomType = roomType;
     }
 

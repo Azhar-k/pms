@@ -22,9 +22,10 @@ public class Room {
     @Column(nullable = false, unique = true)
     private String roomNumber;
 
-    @NotBlank(message = "Room type is required")
-    @Column(nullable = false)
-    private String roomType; // SINGLE, DOUBLE, SUITE, DELUXE, etc.
+    @NotNull(message = "Room type is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_type_id", nullable = false)
+    private RoomType roomType;
 
     @NotNull(message = "Price per night is required")
     @Positive(message = "Price must be positive")
@@ -71,7 +72,7 @@ public class Room {
     public Room() {
     }
 
-    public Room(String roomNumber, String roomType, BigDecimal pricePerNight) {
+    public Room(String roomNumber, RoomType roomType, BigDecimal pricePerNight) {
         this.roomNumber = roomNumber;
         this.roomType = roomType;
         this.pricePerNight = pricePerNight;
@@ -94,11 +95,11 @@ public class Room {
         this.roomNumber = roomNumber;
     }
 
-    public String getRoomType() {
+    public RoomType getRoomType() {
         return roomType;
     }
 
-    public void setRoomType(String roomType) {
+    public void setRoomType(RoomType roomType) {
         this.roomType = roomType;
     }
 

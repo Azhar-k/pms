@@ -74,12 +74,12 @@ public class RoomController {
         return ResponseEntity.ok(rooms);
     }
 
-    @GetMapping("/type/{roomType}")
-    @Operation(summary = "Get rooms by type", description = "Retrieves all rooms of a specific type")
+    @GetMapping("/type/{roomTypeId}")
+    @Operation(summary = "Get rooms by room type", description = "Retrieves all rooms of a specific room type")
     @ApiResponse(responseCode = "200", description = "List of rooms retrieved successfully")
     public ResponseEntity<List<RoomDTO>> getRoomsByType(
-            @Parameter(description = "Room type", required = true) @PathVariable String roomType) {
-        List<RoomDTO> rooms = roomService.getRoomsByType(roomType);
+            @Parameter(description = "Room type ID", required = true) @PathVariable Long roomTypeId) {
+        List<RoomDTO> rooms = roomService.getRoomsByType(roomTypeId);
         return ResponseEntity.ok(rooms);
     }
 

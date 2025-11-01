@@ -2,17 +2,22 @@ package com.klm.pms.mapper;
 
 import com.klm.pms.dto.RoomDTO;
 import com.klm.pms.model.Room;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class RoomMapper {
+    
+    @Autowired
+    private RoomTypeMapper roomTypeMapper;
+    
     public RoomDTO toDTO(Room room) {
         if (room == null) return null;
         
         RoomDTO dto = new RoomDTO();
         dto.setId(room.getId());
         dto.setRoomNumber(room.getRoomNumber());
-        dto.setRoomType(room.getRoomType());
+        dto.setRoomTypeId(room.getRoomType() != null ? room.getRoomType().getId() : null);
         dto.setPricePerNight(room.getPricePerNight());
         dto.setStatus(room.getStatus());
         dto.setMaxOccupancy(room.getMaxOccupancy());
@@ -21,6 +26,12 @@ public class RoomMapper {
         dto.setFloor(room.getFloor());
         dto.setHasBalcony(room.getHasBalcony());
         dto.setHasView(room.getHasView());
+        
+        // Optionally include nested room type object
+        if (room.getRoomType() != null) {
+            dto.setRoomType(roomTypeMapper.toDTO(room.getRoomType()));
+        }
+        
         return dto;
     }
 
@@ -30,7 +41,7 @@ public class RoomMapper {
         Room room = new Room();
         room.setId(dto.getId());
         room.setRoomNumber(dto.getRoomNumber());
-        room.setRoomType(dto.getRoomType());
+        // Note: roomType will be set by service layer after fetching from repository
         room.setPricePerNight(dto.getPricePerNight());
         room.setStatus(dto.getStatus() != null ? dto.getStatus() : Room.RoomStatus.AVAILABLE);
         room.setMaxOccupancy(dto.getMaxOccupancy());

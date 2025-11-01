@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface RoomRepository extends JpaRepository<Room, Long> {
     Optional<Room> findByRoomNumber(String roomNumber);
     List<Room> findByStatus(RoomStatus status);
-    List<Room> findByRoomType(String roomType);
-    List<Room> findByStatusAndRoomType(RoomStatus status, String roomType);
+    List<Room> findByRoomTypeId(Long roomTypeId);
+    List<Room> findByStatusAndRoomTypeId(RoomStatus status, Long roomTypeId);
 }
 
