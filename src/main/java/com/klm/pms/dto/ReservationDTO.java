@@ -18,6 +18,9 @@ public class ReservationDTO {
     @NotNull(message = "Room ID is required")
     private Long roomId;
     
+    @NotNull(message = "Rate type ID is required")
+    private Long rateTypeId;
+    
     @NotNull(message = "Check-in date is required")
     private LocalDate checkInDate;
     
@@ -75,6 +78,14 @@ public class ReservationDTO {
 
     public void setRoomId(Long roomId) {
         this.roomId = roomId;
+    }
+
+    public Long getRateTypeId() {
+        return rateTypeId;
+    }
+
+    public void setRateTypeId(Long rateTypeId) {
+        this.rateTypeId = rateTypeId;
     }
 
     public LocalDate getCheckInDate() {

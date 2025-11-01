@@ -31,6 +31,11 @@ public class Reservation {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
+    @NotNull(message = "Rate type is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rate_type_id", nullable = false)
+    private RateType rateType;
+
     @NotNull(message = "Check-in date is required")
     @Column(nullable = false)
     private LocalDate checkInDate;
@@ -130,6 +135,14 @@ public class Reservation {
 
     public void setRoom(Room room) {
         this.room = room;
+    }
+
+    public RateType getRateType() {
+        return rateType;
+    }
+
+    public void setRateType(RateType rateType) {
+        this.rateType = rateType;
     }
 
     public LocalDate getCheckInDate() {

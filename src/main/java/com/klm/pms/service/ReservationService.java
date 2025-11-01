@@ -3,10 +3,12 @@ package com.klm.pms.service;
 import com.klm.pms.dto.ReservationDTO;
 import com.klm.pms.mapper.ReservationMapper;
 import com.klm.pms.model.Guest;
+import com.klm.pms.model.RateType;
 import com.klm.pms.model.Reservation;
 import com.klm.pms.model.Reservation.ReservationStatus;
 import com.klm.pms.model.Room;
 import com.klm.pms.repository.GuestRepository;
+import com.klm.pms.repository.RateTypeRepository;
 import com.klm.pms.repository.ReservationRepository;
 import com.klm.pms.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,12 @@ public class ReservationService {
     private RoomRepository roomRepository;
 
     @Autowired
+    private RateTypeRepository rateTypeRepository;
+
+    @Autowired
+    private RateTypeService rateTypeService;
+
+    @Autowired
     private ReservationMapper reservationMapper;
 
     public ReservationDTO createReservation(ReservationDTO reservationDTO) {
@@ -53,6 +61,10 @@ public class ReservationService {
         Room room = roomRepository.findById(reservationDTO.getRoomId())
                 .orElseThrow(() -> new RuntimeException("Room not found with id: " + reservationDTO.getRoomId()));
         
+        // Get rate type
+        RateType rateType = rateTypeRepository.findById(reservationDTO.getRateTypeId())
+                .orElseThrow(() -> new RuntimeException("Rate type not found with id: " + reservationDTO.getRateTypeId()));
+        
         // Check room availability
         List<Reservation> conflictingReservations = reservationRepository.findConflictingReservations(
                 room.getId(), reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate());
@@ -70,11 +82,15 @@ public class ReservationService {
         Reservation reservation = reservationMapper.toEntity(reservationDTO);
         reservation.setGuest(guest);
         reservation.setRoom(room);
+        reservation.setRateType(rateType);
         reservation.setStatus(ReservationStatus.CONFIRMED);
         
-        // Calculate total amount
+        // Get rate from rate type for this room type
+        BigDecimal ratePerNight = rateTypeService.getRateForRoomType(rateType.getId(), room.getRoomType().getId());
+        
+        // Calculate total amount based on rate type rate
         long nights = ChronoUnit.DAYS.between(reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate());
-        BigDecimal totalAmount = room.getPricePerNight().multiply(BigDecimal.valueOf(nights));
+        BigDecimal totalAmount = ratePerNight.multiply(BigDecimal.valueOf(nights));
         reservation.setTotalAmount(totalAmount);
         
         // Update room status

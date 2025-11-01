@@ -22,6 +22,7 @@ public class ReservationMapper {
         dto.setReservationNumber(reservation.getReservationNumber());
         dto.setGuestId(reservation.getGuest() != null ? reservation.getGuest().getId() : null);
         dto.setRoomId(reservation.getRoom() != null ? reservation.getRoom().getId() : null);
+        dto.setRateTypeId(reservation.getRateType() != null ? reservation.getRateType().getId() : null);
         dto.setCheckInDate(reservation.getCheckInDate());
         dto.setCheckOutDate(reservation.getCheckOutDate());
         dto.setNumberOfGuests(reservation.getNumberOfGuests());
