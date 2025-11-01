@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,8 @@ import java.util.List;
 @Tag(name = "Reservation Management", description = "APIs for managing hotel reservations, check-in, and check-out")
 public class ReservationController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ReservationController.class);
+
     @Autowired
     private ReservationService reservationService;
 
@@ -33,7 +37,10 @@ public class ReservationController {
             @ApiResponse(responseCode = "400", description = "Invalid input data or room not available")
     })
     public ResponseEntity<ReservationDTO> createReservation(@Valid @RequestBody ReservationDTO reservationDTO) {
+        logger.info("POST /api/reservations - Creating new reservation for guest ID: {}, room ID: {}", 
+                reservationDTO.getGuestId(), reservationDTO.getRoomId());
         ReservationDTO createdReservation = reservationService.createReservation(reservationDTO);
+        logger.info("POST /api/reservations - Successfully created reservation with ID: {}", createdReservation.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdReservation);
     }
 
@@ -45,7 +52,9 @@ public class ReservationController {
     })
     public ResponseEntity<ReservationDTO> getReservationById(
             @Parameter(description = "Reservation ID", required = true) @PathVariable Long id) {
+        logger.info("GET /api/reservations/{} - Fetching reservation by ID", id);
         ReservationDTO reservation = reservationService.getReservationById(id);
+        logger.info("GET /api/reservations/{} - Successfully retrieved reservation", id);
         return ResponseEntity.ok(reservation);
     }
 
@@ -57,7 +66,9 @@ public class ReservationController {
     })
     public ResponseEntity<ReservationDTO> getReservationByNumber(
             @Parameter(description = "Reservation number", required = true) @PathVariable String reservationNumber) {
+        logger.info("GET /api/reservations/number/{} - Fetching reservation by number", reservationNumber);
         ReservationDTO reservation = reservationService.getReservationByNumber(reservationNumber);
+        logger.info("GET /api/reservations/number/{} - Successfully retrieved reservation", reservationNumber);
         return ResponseEntity.ok(reservation);
     }
 
@@ -65,7 +76,9 @@ public class ReservationController {
     @Operation(summary = "Get all reservations", description = "Retrieves a list of all reservations in the system")
     @ApiResponse(responseCode = "200", description = "List of reservations retrieved successfully")
     public ResponseEntity<List<ReservationDTO>> getAllReservations() {
+        logger.info("GET /api/reservations - Fetching all reservations");
         List<ReservationDTO> reservations = reservationService.getAllReservations();
+        logger.info("GET /api/reservations - Retrieved {} reservation(s)", reservations.size());
         return ResponseEntity.ok(reservations);
     }
 
@@ -74,7 +87,9 @@ public class ReservationController {
     @ApiResponse(responseCode = "200", description = "List of reservations retrieved successfully")
     public ResponseEntity<List<ReservationDTO>> getReservationsByGuest(
             @Parameter(description = "Guest ID", required = true) @PathVariable Long guestId) {
+        logger.info("GET /api/reservations/guest/{} - Fetching reservations by guest", guestId);
         List<ReservationDTO> reservations = reservationService.getReservationsByGuest(guestId);
+        logger.info("GET /api/reservations/guest/{} - Retrieved {} reservation(s)", guestId, reservations.size());
         return ResponseEntity.ok(reservations);
     }
 
@@ -83,7 +98,9 @@ public class ReservationController {
     @ApiResponse(responseCode = "200", description = "List of reservations retrieved successfully")
     public ResponseEntity<List<ReservationDTO>> getReservationsByStatus(
             @Parameter(description = "Reservation status", required = true) @PathVariable ReservationStatus status) {
+        logger.info("GET /api/reservations/status/{} - Fetching reservations by status", status);
         List<ReservationDTO> reservations = reservationService.getReservationsByStatus(status);
+        logger.info("GET /api/reservations/status/{} - Retrieved {} reservation(s)", status, reservations.size());
         return ResponseEntity.ok(reservations);
     }
 
@@ -95,7 +112,9 @@ public class ReservationController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (yyyy-MM-dd)", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        logger.info("GET /api/reservations/date-range - Fetching reservations from {} to {}", startDate, endDate);
         List<ReservationDTO> reservations = reservationService.getReservationsByDateRange(startDate, endDate);
+        logger.info("GET /api/reservations/date-range - Retrieved {} reservation(s)", reservations.size());
         return ResponseEntity.ok(reservations);
     }
 
@@ -108,7 +127,9 @@ public class ReservationController {
     })
     public ResponseEntity<ReservationDTO> checkIn(
             @Parameter(description = "Reservation ID", required = true) @PathVariable Long id) {
+        logger.info("POST /api/reservations/{}/check-in - Processing check-in", id);
         ReservationDTO reservation = reservationService.checkIn(id);
+        logger.info("POST /api/reservations/{}/check-in - Successfully checked in", id);
         return ResponseEntity.ok(reservation);
     }
 
@@ -121,7 +142,9 @@ public class ReservationController {
     })
     public ResponseEntity<ReservationDTO> checkOut(
             @Parameter(description = "Reservation ID", required = true) @PathVariable Long id) {
+        logger.info("POST /api/reservations/{}/check-out - Processing check-out", id);
         ReservationDTO reservation = reservationService.checkOut(id);
+        logger.info("POST /api/reservations/{}/check-out - Successfully checked out", id);
         return ResponseEntity.ok(reservation);
     }
 
@@ -134,7 +157,9 @@ public class ReservationController {
     })
     public ResponseEntity<ReservationDTO> cancelReservation(
             @Parameter(description = "Reservation ID", required = true) @PathVariable Long id) {
+        logger.info("POST /api/reservations/{}/cancel - Cancelling reservation", id);
         ReservationDTO reservation = reservationService.cancelReservation(id);
+        logger.info("POST /api/reservations/{}/cancel - Successfully cancelled reservation", id);
         return ResponseEntity.ok(reservation);
     }
 }

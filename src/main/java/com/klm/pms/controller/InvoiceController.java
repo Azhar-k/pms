@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,8 @@ import java.util.List;
 @RequestMapping("/api/invoices")
 @Tag(name = "Invoice Management", description = "APIs for managing invoices and billing")
 public class InvoiceController {
+
+    private static final Logger logger = LoggerFactory.getLogger(InvoiceController.class);
 
     @Autowired
     private InvoiceService invoiceService;
@@ -33,7 +37,9 @@ public class InvoiceController {
     })
     public ResponseEntity<InvoiceDTO> generateInvoice(
             @Parameter(description = "Reservation ID", required = true) @PathVariable Long reservationId) {
+        logger.info("POST /api/invoices/generate/{} - Generating invoice for reservation", reservationId);
         InvoiceDTO invoice = invoiceService.generateInvoice(reservationId);
+        logger.info("POST /api/invoices/generate/{} - Successfully generated invoice with ID: {}", reservationId, invoice.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(invoice);
     }
 
@@ -45,7 +51,9 @@ public class InvoiceController {
     })
     public ResponseEntity<InvoiceDTO> getInvoiceById(
             @Parameter(description = "Invoice ID", required = true) @PathVariable Long id) {
+        logger.info("GET /api/invoices/{} - Fetching invoice by ID", id);
         InvoiceDTO invoice = invoiceService.getInvoiceById(id);
+        logger.info("GET /api/invoices/{} - Successfully retrieved invoice", id);
         return ResponseEntity.ok(invoice);
     }
 
@@ -57,7 +65,9 @@ public class InvoiceController {
     })
     public ResponseEntity<InvoiceDTO> getInvoiceByNumber(
             @Parameter(description = "Invoice number", required = true) @PathVariable String invoiceNumber) {
+        logger.info("GET /api/invoices/number/{} - Fetching invoice by number", invoiceNumber);
         InvoiceDTO invoice = invoiceService.getInvoiceByNumber(invoiceNumber);
+        logger.info("GET /api/invoices/number/{} - Successfully retrieved invoice", invoiceNumber);
         return ResponseEntity.ok(invoice);
     }
 
@@ -65,7 +75,9 @@ public class InvoiceController {
     @Operation(summary = "Get all invoices", description = "Retrieves a list of all invoices in the system")
     @ApiResponse(responseCode = "200", description = "List of invoices retrieved successfully")
     public ResponseEntity<List<InvoiceDTO>> getAllInvoices() {
+        logger.info("GET /api/invoices - Fetching all invoices");
         List<InvoiceDTO> invoices = invoiceService.getAllInvoices();
+        logger.info("GET /api/invoices - Retrieved {} invoice(s)", invoices.size());
         return ResponseEntity.ok(invoices);
     }
 
@@ -74,7 +86,9 @@ public class InvoiceController {
     @ApiResponse(responseCode = "200", description = "List of invoices retrieved successfully")
     public ResponseEntity<List<InvoiceDTO>> getInvoicesByReservation(
             @Parameter(description = "Reservation ID", required = true) @PathVariable Long reservationId) {
+        logger.info("GET /api/invoices/reservation/{} - Fetching invoices by reservation", reservationId);
         List<InvoiceDTO> invoices = invoiceService.getInvoicesByReservation(reservationId);
+        logger.info("GET /api/invoices/reservation/{} - Retrieved {} invoice(s)", reservationId, invoices.size());
         return ResponseEntity.ok(invoices);
     }
 
@@ -83,7 +97,9 @@ public class InvoiceController {
     @ApiResponse(responseCode = "200", description = "List of invoices retrieved successfully")
     public ResponseEntity<List<InvoiceDTO>> getInvoicesByStatus(
             @Parameter(description = "Invoice status", required = true) @PathVariable InvoiceStatus status) {
+        logger.info("GET /api/invoices/status/{} - Fetching invoices by status", status);
         List<InvoiceDTO> invoices = invoiceService.getInvoicesByStatus(status);
+        logger.info("GET /api/invoices/status/{} - Retrieved {} invoice(s)", status, invoices.size());
         return ResponseEntity.ok(invoices);
     }
 
@@ -97,7 +113,9 @@ public class InvoiceController {
     public ResponseEntity<InvoiceDTO> addInvoiceItem(
             @Parameter(description = "Invoice ID", required = true) @PathVariable Long invoiceId,
             @Valid @RequestBody InvoiceDTO.InvoiceItemDTO itemDTO) {
+        logger.info("POST /api/invoices/{}/items - Adding item to invoice", invoiceId);
         InvoiceDTO invoice = invoiceService.addInvoiceItem(invoiceId, itemDTO);
+        logger.info("POST /api/invoices/{}/items - Successfully added item to invoice", invoiceId);
         return ResponseEntity.ok(invoice);
     }
 
@@ -111,7 +129,9 @@ public class InvoiceController {
     public ResponseEntity<InvoiceDTO> markInvoiceAsPaid(
             @Parameter(description = "Invoice ID", required = true) @PathVariable Long invoiceId,
             @Parameter(description = "Payment method", required = true) @RequestParam String paymentMethod) {
+        logger.info("POST /api/invoices/{}/pay - Marking invoice as paid with method: {}", invoiceId, paymentMethod);
         InvoiceDTO invoice = invoiceService.markInvoiceAsPaid(invoiceId, paymentMethod);
+        logger.info("POST /api/invoices/{}/pay - Successfully marked invoice as paid", invoiceId);
         return ResponseEntity.ok(invoice);
     }
 }

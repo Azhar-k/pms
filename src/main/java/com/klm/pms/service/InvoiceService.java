@@ -9,6 +9,8 @@ import com.klm.pms.model.Reservation;
 import com.klm.pms.repository.InvoiceItemRepository;
 import com.klm.pms.repository.InvoiceRepository;
 import com.klm.pms.repository.ReservationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class InvoiceService {
+
+    private static final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
 
     @Autowired
     private InvoiceRepository invoiceRepository;
@@ -38,23 +42,32 @@ public class InvoiceService {
     private static final BigDecimal TAX_RATE = new BigDecimal("0.10"); // 10% tax rate
 
     public InvoiceDTO generateInvoice(Long reservationId) {
+        logger.info("Generating invoice for reservation ID: {}", reservationId);
+        
         Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new RuntimeException("Reservation not found with id: " + reservationId));
+                .orElseThrow(() -> {
+                    logger.error("Reservation not found with ID: {}", reservationId);
+                    return new RuntimeException("Reservation not found with id: " + reservationId);
+                });
         
         // Check if invoice already exists
         List<Invoice> existingInvoices = invoiceRepository.findByReservationId(reservationId);
         if (!existingInvoices.isEmpty()) {
+            logger.warn("Failed to generate invoice: Invoice already exists for reservation ID: {}", reservationId);
             throw new RuntimeException("Invoice already exists for this reservation");
         }
         
         // Calculate room charges
         long nights = ChronoUnit.DAYS.between(reservation.getCheckInDate(), reservation.getCheckOutDate());
         BigDecimal roomCharge = reservation.getRoom().getPricePerNight().multiply(BigDecimal.valueOf(nights));
+        logger.debug("Calculated room charge: {} for {} night(s) at rate: {}", 
+                roomCharge, nights, reservation.getRoom().getPricePerNight());
         
         // Calculate totals
         BigDecimal subtotal = roomCharge;
         BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
         BigDecimal totalAmount = subtotal.add(taxAmount);
+        logger.debug("Invoice totals - Subtotal: {}, Tax: {}, Total: {}", subtotal, taxAmount, totalAmount);
         
         // Create invoice
         Invoice invoice = new Invoice();
@@ -79,15 +92,23 @@ public class InvoiceService {
         
         Invoice savedInvoice = invoiceRepository.save(invoice);
         invoiceItemRepository.save(roomItem);
+        logger.info("Successfully generated invoice with ID: {} and number: {} for total amount: {}", 
+                savedInvoice.getId(), savedInvoice.getInvoiceNumber(), totalAmount);
         
         return toDTO(savedInvoice);
     }
 
     public InvoiceDTO addInvoiceItem(Long invoiceId, InvoiceDTO.InvoiceItemDTO itemDTO) {
+        logger.info("Adding invoice item to invoice ID: {}", invoiceId);
+        
         Invoice invoice = invoiceRepository.findById(invoiceId)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+                .orElseThrow(() -> {
+                    logger.error("Invoice not found with ID: {}", invoiceId);
+                    return new RuntimeException("Invoice not found with id: " + invoiceId);
+                });
         
         if (invoice.getStatus() == InvoiceStatus.PAID) {
+            logger.warn("Failed to add item: Invoice ID {} is already paid", invoiceId);
             throw new RuntimeException("Cannot add items to a paid invoice");
         }
         
@@ -100,6 +121,7 @@ public class InvoiceService {
         item.setCategory(itemDTO.getCategory());
         
         invoice.getItems().add(item);
+        logger.debug("Added item: {} - Quantity: {}, Amount: {}", itemDTO.getDescription(), itemDTO.getQuantity(), itemDTO.getAmount());
         
         // Recalculate totals
         BigDecimal subtotal = invoice.getItems().stream()
@@ -112,67 +134,97 @@ public class InvoiceService {
         invoice.setSubtotal(subtotal);
         invoice.setTaxAmount(taxAmount);
         invoice.setTotalAmount(totalAmount);
+        logger.debug("Recalculated totals - Subtotal: {}, Tax: {}, Total: {}", subtotal, taxAmount, totalAmount);
         
         invoiceItemRepository.save(item);
         Invoice updatedInvoice = invoiceRepository.save(invoice);
+        logger.info("Successfully added invoice item to invoice ID: {}", invoiceId);
         
         return toDTO(updatedInvoice);
     }
 
     public InvoiceDTO markInvoiceAsPaid(Long invoiceId, String paymentMethod) {
+        logger.info("Marking invoice ID: {} as paid with payment method: {}", invoiceId, paymentMethod);
+        
         Invoice invoice = invoiceRepository.findById(invoiceId)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+                .orElseThrow(() -> {
+                    logger.error("Invoice not found with ID: {}", invoiceId);
+                    return new RuntimeException("Invoice not found with id: " + invoiceId);
+                });
         
         if (invoice.getStatus() == InvoiceStatus.PAID) {
+            logger.warn("Failed to mark as paid: Invoice ID {} is already paid", invoiceId);
             throw new RuntimeException("Invoice is already paid");
         }
         
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setPaidDate(LocalDateTime.now());
         invoice.setPaymentMethod(paymentMethod);
+        logger.debug("Invoice status updated to PAID");
         
         // Update reservation payment status
         Reservation reservation = invoice.getReservation();
         reservation.setPaymentStatus("PAID");
         reservationRepository.save(reservation);
+        logger.debug("Reservation ID: {} payment status updated to PAID", reservation.getId());
         
         Invoice updatedInvoice = invoiceRepository.save(invoice);
+        logger.info("Successfully marked invoice ID: {} as paid", invoiceId);
         return toDTO(updatedInvoice);
     }
 
     @Transactional(readOnly = true)
     public InvoiceDTO getInvoiceById(Long id) {
+        logger.debug("Fetching invoice with ID: {}", id);
         Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+                .orElseThrow(() -> {
+                    logger.error("Invoice not found with ID: {}", id);
+                    return new RuntimeException("Invoice not found with id: " + id);
+                });
+        logger.debug("Successfully retrieved invoice with ID: {}", id);
         return toDTO(invoice);
     }
 
     @Transactional(readOnly = true)
     public InvoiceDTO getInvoiceByNumber(String invoiceNumber) {
+        logger.debug("Fetching invoice with number: {}", invoiceNumber);
         Invoice invoice = invoiceRepository.findByInvoiceNumber(invoiceNumber)
-                .orElseThrow(() -> new RuntimeException("Invoice not found with number: " + invoiceNumber));
+                .orElseThrow(() -> {
+                    logger.error("Invoice not found with number: {}", invoiceNumber);
+                    return new RuntimeException("Invoice not found with number: " + invoiceNumber);
+                });
+        logger.debug("Successfully retrieved invoice with number: {}", invoiceNumber);
         return toDTO(invoice);
     }
 
     @Transactional(readOnly = true)
     public List<InvoiceDTO> getInvoicesByReservation(Long reservationId) {
-        return invoiceRepository.findByReservationId(reservationId).stream()
+        logger.debug("Fetching invoices for reservation ID: {}", reservationId);
+        List<InvoiceDTO> invoices = invoiceRepository.findByReservationId(reservationId).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+        logger.info("Retrieved {} invoice(s) for reservation ID: {}", invoices.size(), reservationId);
+        return invoices;
     }
 
     @Transactional(readOnly = true)
     public List<InvoiceDTO> getInvoicesByStatus(InvoiceStatus status) {
-        return invoiceRepository.findByStatus(status).stream()
+        logger.debug("Fetching invoices with status: {}", status);
+        List<InvoiceDTO> invoices = invoiceRepository.findByStatus(status).stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+        logger.info("Retrieved {} invoice(s) with status: {}", invoices.size(), status);
+        return invoices;
     }
 
     @Transactional(readOnly = true)
     public List<InvoiceDTO> getAllInvoices() {
-        return invoiceRepository.findAll().stream()
+        logger.debug("Fetching all invoices");
+        List<InvoiceDTO> invoices = invoiceRepository.findAll().stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
+        logger.info("Retrieved {} invoice(s)", invoices.size());
+        return invoices;
     }
 
     private InvoiceDTO toDTO(Invoice invoice) {

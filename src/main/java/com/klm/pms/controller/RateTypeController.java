@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import java.util.List;
 @Tag(name = "Rate Type Management", description = "APIs for managing rate types and room type rates")
 public class RateTypeController {
 
+    private static final Logger logger = LoggerFactory.getLogger(RateTypeController.class);
+
     @Autowired
     private RateTypeService rateTypeService;
 
@@ -31,7 +35,9 @@ public class RateTypeController {
             @ApiResponse(responseCode = "400", description = "Invalid input data or rate type name already exists")
     })
     public ResponseEntity<RateTypeDTO> createRateType(@Valid @RequestBody RateTypeDTO rateTypeDTO) {
+        logger.info("POST /api/rate-types - Creating new rate type with name: {}", rateTypeDTO.getName());
         RateTypeDTO createdRateType = rateTypeService.createRateType(rateTypeDTO);
+        logger.info("POST /api/rate-types - Successfully created rate type with ID: {}", createdRateType.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRateType);
     }
 
@@ -43,7 +49,9 @@ public class RateTypeController {
     })
     public ResponseEntity<RateTypeDTO> getRateTypeById(
             @Parameter(description = "Rate type ID", required = true) @PathVariable Long id) {
+        logger.info("GET /api/rate-types/{} - Fetching rate type by ID", id);
         RateTypeDTO rateType = rateTypeService.getRateTypeById(id);
+        logger.info("GET /api/rate-types/{} - Successfully retrieved rate type", id);
         return ResponseEntity.ok(rateType);
     }
 
@@ -55,7 +63,9 @@ public class RateTypeController {
     })
     public ResponseEntity<RateTypeDTO> getRateTypeByName(
             @Parameter(description = "Rate type name", required = true) @PathVariable String name) {
+        logger.info("GET /api/rate-types/name/{} - Fetching rate type by name", name);
         RateTypeDTO rateType = rateTypeService.getRateTypeByName(name);
+        logger.info("GET /api/rate-types/name/{} - Successfully retrieved rate type", name);
         return ResponseEntity.ok(rateType);
     }
 
@@ -63,7 +73,9 @@ public class RateTypeController {
     @Operation(summary = "Get all rate types", description = "Retrieves a list of all rate types in the system")
     @ApiResponse(responseCode = "200", description = "List of rate types retrieved successfully")
     public ResponseEntity<List<RateTypeDTO>> getAllRateTypes() {
+        logger.info("GET /api/rate-types - Fetching all rate types");
         List<RateTypeDTO> rateTypes = rateTypeService.getAllRateTypes();
+        logger.info("GET /api/rate-types - Retrieved {} rate type(s)", rateTypes.size());
         return ResponseEntity.ok(rateTypes);
     }
 
@@ -77,7 +89,9 @@ public class RateTypeController {
     public ResponseEntity<RateTypeDTO> updateRateType(
             @Parameter(description = "Rate type ID", required = true) @PathVariable Long id,
             @Valid @RequestBody RateTypeDTO rateTypeDTO) {
+        logger.info("PUT /api/rate-types/{} - Updating rate type", id);
         RateTypeDTO updatedRateType = rateTypeService.updateRateType(id, rateTypeDTO);
+        logger.info("PUT /api/rate-types/{} - Successfully updated rate type", id);
         return ResponseEntity.ok(updatedRateType);
     }
 
@@ -91,7 +105,9 @@ public class RateTypeController {
     public ResponseEntity<RateTypeDTO> addRoomTypeRate(
             @Parameter(description = "Rate type ID", required = true) @PathVariable Long rateTypeId,
             @Valid @RequestBody RateTypeDTO.RoomTypeRateDTO roomTypeRateDTO) {
+        logger.info("POST /api/rate-types/{}/room-type-rates - Adding room type rate", rateTypeId);
         RateTypeDTO rateType = rateTypeService.addRoomTypeRate(rateTypeId, roomTypeRateDTO);
+        logger.info("POST /api/rate-types/{}/room-type-rates - Successfully added room type rate", rateTypeId);
         return ResponseEntity.ok(rateType);
     }
 
@@ -106,7 +122,9 @@ public class RateTypeController {
             @Parameter(description = "Rate type ID", required = true) @PathVariable Long rateTypeId,
             @Parameter(description = "Room type ID", required = true) @PathVariable Long roomTypeId,
             @Parameter(description = "New rate value", required = true) @RequestParam BigDecimal rate) {
+        logger.info("PUT /api/rate-types/{}/room-type-rates/{} - Updating room type rate to {}", rateTypeId, roomTypeId, rate);
         RateTypeDTO rateType = rateTypeService.updateRoomTypeRate(rateTypeId, roomTypeId, rate);
+        logger.info("PUT /api/rate-types/{}/room-type-rates/{} - Successfully updated room type rate", rateTypeId, roomTypeId);
         return ResponseEntity.ok(rateType);
     }
 
@@ -119,7 +137,9 @@ public class RateTypeController {
     public ResponseEntity<Void> removeRoomTypeRate(
             @Parameter(description = "Rate type ID", required = true) @PathVariable Long rateTypeId,
             @Parameter(description = "Room type ID", required = true) @PathVariable Long roomTypeId) {
+        logger.info("DELETE /api/rate-types/{}/room-type-rates/{} - Removing room type rate", rateTypeId, roomTypeId);
         rateTypeService.removeRoomTypeRate(rateTypeId, roomTypeId);
+        logger.info("DELETE /api/rate-types/{}/room-type-rates/{} - Successfully removed room type rate", rateTypeId, roomTypeId);
         return ResponseEntity.noContent().build();
     }
 
@@ -132,7 +152,9 @@ public class RateTypeController {
     public ResponseEntity<BigDecimal> getRateForRoomType(
             @Parameter(description = "Rate type ID", required = true) @PathVariable Long rateTypeId,
             @Parameter(description = "Room type ID", required = true) @PathVariable Long roomTypeId) {
+        logger.info("GET /api/rate-types/{}/room-type-rates/{} - Fetching rate for room type", rateTypeId, roomTypeId);
         BigDecimal rate = rateTypeService.getRateForRoomType(rateTypeId, roomTypeId);
+        logger.info("GET /api/rate-types/{}/room-type-rates/{} - Retrieved rate: {}", rateTypeId, roomTypeId, rate);
         return ResponseEntity.ok(rate);
     }
 
@@ -145,7 +167,9 @@ public class RateTypeController {
     })
     public ResponseEntity<Void> deleteRateType(
             @Parameter(description = "Rate type ID", required = true) @PathVariable Long id) {
+        logger.info("DELETE /api/rate-types/{} - Deleting rate type", id);
         rateTypeService.deleteRateType(id);
+        logger.info("DELETE /api/rate-types/{} - Successfully deleted rate type", id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,8 @@ import java.util.List;
 @Tag(name = "Room Management", description = "APIs for managing hotel rooms")
 public class RoomController {
 
+    private static final Logger logger = LoggerFactory.getLogger(RoomController.class);
+
     @Autowired
     private RoomService roomService;
 
@@ -30,7 +34,9 @@ public class RoomController {
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
     public ResponseEntity<RoomDTO> createRoom(@Valid @RequestBody RoomDTO roomDTO) {
+        logger.info("POST /api/rooms - Creating new room with number: {}", roomDTO.getRoomNumber());
         RoomDTO createdRoom = roomService.createRoom(roomDTO);
+        logger.info("POST /api/rooms - Successfully created room with ID: {}", createdRoom.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRoom);
     }
 
@@ -42,7 +48,9 @@ public class RoomController {
     })
     public ResponseEntity<RoomDTO> getRoomById(
             @Parameter(description = "Room ID", required = true) @PathVariable Long id) {
+        logger.info("GET /api/rooms/{} - Fetching room by ID", id);
         RoomDTO room = roomService.getRoomById(id);
+        logger.info("GET /api/rooms/{} - Successfully retrieved room", id);
         return ResponseEntity.ok(room);
     }
 
@@ -54,7 +62,9 @@ public class RoomController {
     })
     public ResponseEntity<RoomDTO> getRoomByNumber(
             @Parameter(description = "Room number", required = true) @PathVariable String roomNumber) {
+        logger.info("GET /api/rooms/number/{} - Fetching room by number", roomNumber);
         RoomDTO room = roomService.getRoomByNumber(roomNumber);
+        logger.info("GET /api/rooms/number/{} - Successfully retrieved room", roomNumber);
         return ResponseEntity.ok(room);
     }
 
@@ -62,7 +72,9 @@ public class RoomController {
     @Operation(summary = "Get all rooms", description = "Retrieves a list of all rooms in the system")
     @ApiResponse(responseCode = "200", description = "List of rooms retrieved successfully")
     public ResponseEntity<List<RoomDTO>> getAllRooms() {
+        logger.info("GET /api/rooms - Fetching all rooms");
         List<RoomDTO> rooms = roomService.getAllRooms();
+        logger.info("GET /api/rooms - Retrieved {} room(s)", rooms.size());
         return ResponseEntity.ok(rooms);
     }
 
@@ -70,7 +82,9 @@ public class RoomController {
     @Operation(summary = "Get available rooms", description = "Retrieves a list of all available rooms")
     @ApiResponse(responseCode = "200", description = "List of available rooms retrieved successfully")
     public ResponseEntity<List<RoomDTO>> getAvailableRooms() {
+        logger.info("GET /api/rooms/available - Fetching available rooms");
         List<RoomDTO> rooms = roomService.getAvailableRooms();
+        logger.info("GET /api/rooms/available - Retrieved {} available room(s)", rooms.size());
         return ResponseEntity.ok(rooms);
     }
 
@@ -79,7 +93,9 @@ public class RoomController {
     @ApiResponse(responseCode = "200", description = "List of rooms retrieved successfully")
     public ResponseEntity<List<RoomDTO>> getRoomsByType(
             @Parameter(description = "Room type ID", required = true) @PathVariable Long roomTypeId) {
+        logger.info("GET /api/rooms/type/{} - Fetching rooms by room type", roomTypeId);
         List<RoomDTO> rooms = roomService.getRoomsByType(roomTypeId);
+        logger.info("GET /api/rooms/type/{} - Retrieved {} room(s)", roomTypeId, rooms.size());
         return ResponseEntity.ok(rooms);
     }
 
@@ -93,7 +109,9 @@ public class RoomController {
     public ResponseEntity<RoomDTO> updateRoom(
             @Parameter(description = "Room ID", required = true) @PathVariable Long id,
             @Valid @RequestBody RoomDTO roomDTO) {
+        logger.info("PUT /api/rooms/{} - Updating room", id);
         RoomDTO updatedRoom = roomService.updateRoom(id, roomDTO);
+        logger.info("PUT /api/rooms/{} - Successfully updated room", id);
         return ResponseEntity.ok(updatedRoom);
     }
 
@@ -105,7 +123,9 @@ public class RoomController {
     })
     public ResponseEntity<Void> deleteRoom(
             @Parameter(description = "Room ID", required = true) @PathVariable Long id) {
+        logger.info("DELETE /api/rooms/{} - Deleting room", id);
         roomService.deleteRoom(id);
+        logger.info("DELETE /api/rooms/{} - Successfully deleted room", id);
         return ResponseEntity.noContent().build();
     }
 }
