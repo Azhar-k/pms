@@ -3,9 +3,7 @@ package com.klm.pms.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,11 +24,6 @@ public class Room {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_type_id", nullable = false)
     private RoomType roomType;
-
-    @NotNull(message = "Price per night is required")
-    @Positive(message = "Price must be positive")
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal pricePerNight;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -72,10 +65,9 @@ public class Room {
     public Room() {
     }
 
-    public Room(String roomNumber, RoomType roomType, BigDecimal pricePerNight) {
+    public Room(String roomNumber, RoomType roomType) {
         this.roomNumber = roomNumber;
         this.roomType = roomType;
-        this.pricePerNight = pricePerNight;
     }
 
     // Getters and Setters
@@ -101,14 +93,6 @@ public class Room {
 
     public void setRoomType(RoomType roomType) {
         this.roomType = roomType;
-    }
-
-    public BigDecimal getPricePerNight() {
-        return pricePerNight;
-    }
-
-    public void setPricePerNight(BigDecimal pricePerNight) {
-        this.pricePerNight = pricePerNight;
     }
 
     public RoomStatus getStatus() {

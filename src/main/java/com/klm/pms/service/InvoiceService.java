@@ -39,6 +39,9 @@ public class InvoiceService {
     @Autowired
     private ReservationMapper reservationMapper;
 
+    @Autowired
+    private RateTypeService rateTypeService;
+
     private static final BigDecimal TAX_RATE = new BigDecimal("0.10"); // 10% tax rate
 
     public InvoiceDTO generateInvoice(Long reservationId) {
@@ -59,9 +62,13 @@ public class InvoiceService {
         
         // Calculate room charges
         long nights = ChronoUnit.DAYS.between(reservation.getCheckInDate(), reservation.getCheckOutDate());
-        BigDecimal roomCharge = reservation.getRoom().getPricePerNight().multiply(BigDecimal.valueOf(nights));
+        // Get rate from rate type for this room type
+        BigDecimal ratePerNight = rateTypeService.getRateForRoomType(
+                reservation.getRateType().getId(), 
+                reservation.getRoom().getRoomType().getId());
+        BigDecimal roomCharge = ratePerNight.multiply(BigDecimal.valueOf(nights));
         logger.debug("Calculated room charge: {} for {} night(s) at rate: {}", 
-                roomCharge, nights, reservation.getRoom().getPricePerNight());
+                roomCharge, nights, ratePerNight);
         
         // Calculate totals
         BigDecimal subtotal = roomCharge;
@@ -84,7 +91,7 @@ public class InvoiceService {
         roomItem.setInvoice(invoice);
         roomItem.setDescription("Room charge for " + nights + " night(s) - " + reservation.getRoom().getRoomNumber());
         roomItem.setQuantity((int) nights);
-        roomItem.setUnitPrice(reservation.getRoom().getPricePerNight());
+        roomItem.setUnitPrice(ratePerNight);
         roomItem.setAmount(roomCharge);
         roomItem.setCategory("ROOM_CHARGE");
         

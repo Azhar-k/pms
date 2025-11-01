@@ -3,9 +3,6 @@ package com.klm.pms.dto;
 import com.klm.pms.model.Room.RoomStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-
-import java.math.BigDecimal;
 
 public class RoomDTO {
     private Long id;
@@ -15,10 +12,6 @@ public class RoomDTO {
     
     @NotNull(message = "Room type ID is required")
     private Long roomTypeId;
-    
-    @NotNull(message = "Price per night is required")
-    @Positive(message = "Price must be positive")
-    private BigDecimal pricePerNight;
     
     private RoomStatus status;
     private Integer maxOccupancy;
@@ -66,14 +59,6 @@ public class RoomDTO {
 
     public void setRoomType(RoomTypeDTO roomType) {
         this.roomType = roomType;
-    }
-
-    public BigDecimal getPricePerNight() {
-        return pricePerNight;
-    }
-
-    public void setPricePerNight(BigDecimal pricePerNight) {
-        this.pricePerNight = pricePerNight;
     }
 
     public RoomStatus getStatus() {

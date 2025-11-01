@@ -87,7 +87,6 @@ public class RoomService {
         }
         
         existingRoom.setRoomNumber(roomDTO.getRoomNumber());
-        existingRoom.setPricePerNight(roomDTO.getPricePerNight());
         if (roomDTO.getStatus() != null) {
             existingRoom.setStatus(roomDTO.getStatus());
             logger.debug("Room status changed to: {}", roomDTO.getStatus());

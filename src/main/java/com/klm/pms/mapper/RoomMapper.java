@@ -18,7 +18,6 @@ public class RoomMapper {
         dto.setId(room.getId());
         dto.setRoomNumber(room.getRoomNumber());
         dto.setRoomTypeId(room.getRoomType() != null ? room.getRoomType().getId() : null);
-        dto.setPricePerNight(room.getPricePerNight());
         dto.setStatus(room.getStatus());
         dto.setMaxOccupancy(room.getMaxOccupancy());
         dto.setAmenities(room.getAmenities());
@@ -42,7 +41,6 @@ public class RoomMapper {
         room.setId(dto.getId());
         room.setRoomNumber(dto.getRoomNumber());
         // Note: roomType will be set by service layer after fetching from repository
-        room.setPricePerNight(dto.getPricePerNight());
         room.setStatus(dto.getStatus() != null ? dto.getStatus() : Room.RoomStatus.AVAILABLE);
         room.setMaxOccupancy(dto.getMaxOccupancy());
         room.setAmenities(dto.getAmenities());
