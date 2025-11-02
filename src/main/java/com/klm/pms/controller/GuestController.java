@@ -1,6 +1,8 @@
 package com.klm.pms.controller;
 
 import com.klm.pms.dto.GuestDTO;
+import com.klm.pms.dto.GuestFilterRequest;
+import com.klm.pms.dto.PageResponse;
 import com.klm.pms.service.GuestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -70,13 +72,55 @@ public class GuestController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all guests", description = "Retrieves a list of all guests in the system")
+    @Operation(summary = "Get all guests", description = "Retrieves a list of all guests in the system with optional pagination, sorting, and filtering")
     @ApiResponse(responseCode = "200", description = "List of guests retrieved successfully")
-    public ResponseEntity<List<GuestDTO>> getAllGuests() {
-        logger.info("GET /api/guests - Fetching all guests");
-        List<GuestDTO> guests = guestService.getAllGuests();
-        logger.info("GET /api/guests - Retrieved {} guest(s)", guests.size());
-        return ResponseEntity.ok(guests);
+    public ResponseEntity<?> getAllGuests(
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(required = false, defaultValue = "0") Integer page,
+            @Parameter(description = "Page size") @RequestParam(required = false, defaultValue = "10") Integer size,
+            @Parameter(description = "Sort by field (e.g., lastName, firstName, email)") @RequestParam(required = false) String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(required = false, defaultValue = "asc") String sortDir,
+            @Parameter(description = "First name filter") @RequestParam(required = false) String firstName,
+            @Parameter(description = "Last name filter") @RequestParam(required = false) String lastName,
+            @Parameter(description = "Email filter") @RequestParam(required = false) String email,
+            @Parameter(description = "Phone number filter") @RequestParam(required = false) String phoneNumber,
+            @Parameter(description = "City filter") @RequestParam(required = false) String city,
+            @Parameter(description = "State filter") @RequestParam(required = false) String state,
+            @Parameter(description = "Country filter") @RequestParam(required = false) String country,
+            @Parameter(description = "Identification type filter") @RequestParam(required = false) String identificationType,
+            @Parameter(description = "Search term for name, email, phone, address") @RequestParam(required = false) String searchTerm) {
+        
+        // If pagination or filter parameters are provided, use paginated endpoint
+        if (page != null || size != null || sortBy != null || sortDir != null || 
+            firstName != null || lastName != null || email != null || 
+            phoneNumber != null || city != null || state != null ||
+            country != null || identificationType != null || searchTerm != null) {
+            
+            // Build filter request
+            GuestFilterRequest filter = new GuestFilterRequest();
+            filter.setFirstName(firstName);
+            filter.setLastName(lastName);
+            filter.setEmail(email);
+            filter.setPhoneNumber(phoneNumber);
+            filter.setCity(city);
+            filter.setState(state);
+            filter.setCountry(country);
+            filter.setIdentificationType(identificationType);
+            filter.setSearchTerm(searchTerm);
+            
+            int pageNum = page != null ? page : 0;
+            int pageSize = size != null ? size : 10;
+            
+            logger.info("GET /api/guests - Fetching guests with pagination - page: {}, size: {}", pageNum, pageSize);
+            PageResponse<GuestDTO> response = guestService.getAllGuestsPaginated(filter, pageNum, pageSize, sortBy, sortDir);
+            logger.info("GET /api/guests - Retrieved {} guest(s) out of {} total", response.getContent().size(), response.getTotalElements());
+            return ResponseEntity.ok(response);
+        } else {
+            // Use non-paginated endpoint for backward compatibility
+            logger.info("GET /api/guests - Fetching all guests");
+            List<GuestDTO> guests = guestService.getAllGuests();
+            logger.info("GET /api/guests - Retrieved {} guest(s)", guests.size());
+            return ResponseEntity.ok(guests);
+        }
     }
 
     @PutMapping("/{id}")

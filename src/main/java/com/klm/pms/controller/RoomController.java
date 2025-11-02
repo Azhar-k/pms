@@ -1,6 +1,9 @@
 package com.klm.pms.controller;
 
+import com.klm.pms.dto.PageResponse;
 import com.klm.pms.dto.RoomDTO;
+import com.klm.pms.dto.RoomFilterRequest;
+import com.klm.pms.model.Room.RoomStatus;
 import com.klm.pms.service.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -71,13 +74,55 @@ public class RoomController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all rooms", description = "Retrieves a list of all rooms in the system")
+    @Operation(summary = "Get all rooms", description = "Retrieves a list of all rooms in the system with optional pagination, sorting, and filtering")
     @ApiResponse(responseCode = "200", description = "List of rooms retrieved successfully")
-    public ResponseEntity<List<RoomDTO>> getAllRooms() {
-        logger.info("GET /api/rooms - Fetching all rooms");
-        List<RoomDTO> rooms = roomService.getAllRooms();
-        logger.info("GET /api/rooms - Retrieved {} room(s)", rooms.size());
-        return ResponseEntity.ok(rooms);
+    public ResponseEntity<?> getAllRooms(
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(required = false, defaultValue = "0") Integer page,
+            @Parameter(description = "Page size") @RequestParam(required = false, defaultValue = "10") Integer size,
+            @Parameter(description = "Sort by field (e.g., roomNumber, status, floor)") @RequestParam(required = false) String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(required = false, defaultValue = "asc") String sortDir,
+            @Parameter(description = "Room number filter") @RequestParam(required = false) String roomNumber,
+            @Parameter(description = "Room type ID filter") @RequestParam(required = false) Long roomTypeId,
+            @Parameter(description = "Status filter") @RequestParam(required = false) RoomStatus status,
+            @Parameter(description = "Minimum max occupancy") @RequestParam(required = false) Integer minMaxOccupancy,
+            @Parameter(description = "Maximum max occupancy") @RequestParam(required = false) Integer maxMaxOccupancy,
+            @Parameter(description = "Floor filter") @RequestParam(required = false) Integer floor,
+            @Parameter(description = "Has balcony filter") @RequestParam(required = false) Boolean hasBalcony,
+            @Parameter(description = "Has view filter") @RequestParam(required = false) Boolean hasView,
+            @Parameter(description = "Search term for room number, description, amenities") @RequestParam(required = false) String searchTerm) {
+        
+        // If pagination parameters are provided, use paginated endpoint
+        if (page != null || size != null || sortBy != null || sortDir != null || 
+            roomNumber != null || roomTypeId != null || status != null || 
+            minMaxOccupancy != null || maxMaxOccupancy != null || floor != null ||
+            hasBalcony != null || hasView != null || searchTerm != null) {
+            
+            // Build filter request
+            RoomFilterRequest filter = new RoomFilterRequest();
+            filter.setRoomNumber(roomNumber);
+            filter.setRoomTypeId(roomTypeId);
+            filter.setStatus(status);
+            filter.setMinMaxOccupancy(minMaxOccupancy);
+            filter.setMaxMaxOccupancy(maxMaxOccupancy);
+            filter.setFloor(floor);
+            filter.setHasBalcony(hasBalcony);
+            filter.setHasView(hasView);
+            filter.setSearchTerm(searchTerm);
+            
+            int pageNum = page != null ? page : 0;
+            int pageSize = size != null ? size : 10;
+            
+            logger.info("GET /api/rooms - Fetching rooms with pagination - page: {}, size: {}", pageNum, pageSize);
+            PageResponse<RoomDTO> response = roomService.getAllRoomsPaginated(filter, pageNum, pageSize, sortBy, sortDir);
+            logger.info("GET /api/rooms - Retrieved {} room(s) out of {} total", response.getContent().size(), response.getTotalElements());
+            return ResponseEntity.ok(response);
+        } else {
+            // Use non-paginated endpoint for backward compatibility
+            logger.info("GET /api/rooms - Fetching all rooms");
+            List<RoomDTO> rooms = roomService.getAllRooms();
+            logger.info("GET /api/rooms - Retrieved {} room(s)", rooms.size());
+            return ResponseEntity.ok(rooms);
+        }
     }
 
     @GetMapping("/available")

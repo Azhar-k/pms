@@ -1,6 +1,8 @@
 package com.klm.pms.controller;
 
 import com.klm.pms.dto.InvoiceDTO;
+import com.klm.pms.dto.InvoiceFilterRequest;
+import com.klm.pms.dto.PageResponse;
 import com.klm.pms.model.Invoice.InvoiceStatus;
 import com.klm.pms.service.InvoiceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,10 +14,12 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @CrossOrigin("*")
@@ -73,13 +77,60 @@ public class InvoiceController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all invoices", description = "Retrieves a list of all invoices in the system")
+    @Operation(summary = "Get all invoices", description = "Retrieves a list of all invoices in the system with optional pagination, sorting, and filtering")
     @ApiResponse(responseCode = "200", description = "List of invoices retrieved successfully")
-    public ResponseEntity<List<InvoiceDTO>> getAllInvoices() {
-        logger.info("GET /api/invoices - Fetching all invoices");
-        List<InvoiceDTO> invoices = invoiceService.getAllInvoices();
-        logger.info("GET /api/invoices - Retrieved {} invoice(s)", invoices.size());
-        return ResponseEntity.ok(invoices);
+    public ResponseEntity<?> getAllInvoices(
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(required = false, defaultValue = "0") Integer page,
+            @Parameter(description = "Page size") @RequestParam(required = false, defaultValue = "10") Integer size,
+            @Parameter(description = "Sort by field (e.g., issuedDate, totalAmount, status)") @RequestParam(required = false) String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(required = false, defaultValue = "desc") String sortDir,
+            @Parameter(description = "Invoice number filter") @RequestParam(required = false) String invoiceNumber,
+            @Parameter(description = "Reservation ID filter") @RequestParam(required = false) Long reservationId,
+            @Parameter(description = "Status filter") @RequestParam(required = false) InvoiceStatus status,
+            @Parameter(description = "Issued date from (yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime issuedDateFrom,
+            @Parameter(description = "Issued date to (yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime issuedDateTo,
+            @Parameter(description = "Paid date from (yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime paidDateFrom,
+            @Parameter(description = "Paid date to (yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime paidDateTo,
+            @Parameter(description = "Due date from (yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueDateFrom,
+            @Parameter(description = "Due date to (yyyy-MM-ddTHH:mm:ss)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dueDateTo,
+            @Parameter(description = "Payment method filter") @RequestParam(required = false) String paymentMethod,
+            @Parameter(description = "Search term for invoice number, notes") @RequestParam(required = false) String searchTerm) {
+        
+        // If pagination or filter parameters are provided, use paginated endpoint
+        if (page != null || size != null || sortBy != null || sortDir != null || 
+            invoiceNumber != null || reservationId != null || status != null ||
+            issuedDateFrom != null || issuedDateTo != null || paidDateFrom != null ||
+            paidDateTo != null || dueDateFrom != null || dueDateTo != null ||
+            paymentMethod != null || searchTerm != null) {
+            
+            // Build filter request
+            InvoiceFilterRequest filter = new InvoiceFilterRequest();
+            filter.setInvoiceNumber(invoiceNumber);
+            filter.setReservationId(reservationId);
+            filter.setStatus(status);
+            filter.setIssuedDateFrom(issuedDateFrom);
+            filter.setIssuedDateTo(issuedDateTo);
+            filter.setPaidDateFrom(paidDateFrom);
+            filter.setPaidDateTo(paidDateTo);
+            filter.setDueDateFrom(dueDateFrom);
+            filter.setDueDateTo(dueDateTo);
+            filter.setPaymentMethod(paymentMethod);
+            filter.setSearchTerm(searchTerm);
+            
+            int pageNum = page != null ? page : 0;
+            int pageSize = size != null ? size : 10;
+            
+            logger.info("GET /api/invoices - Fetching invoices with pagination - page: {}, size: {}", pageNum, pageSize);
+            PageResponse<InvoiceDTO> response = invoiceService.getAllInvoicesPaginated(filter, pageNum, pageSize, sortBy, sortDir);
+            logger.info("GET /api/invoices - Retrieved {} invoice(s) out of {} total", response.getContent().size(), response.getTotalElements());
+            return ResponseEntity.ok(response);
+        } else {
+            // Use non-paginated endpoint for backward compatibility
+            logger.info("GET /api/invoices - Fetching all invoices");
+            List<InvoiceDTO> invoices = invoiceService.getAllInvoices();
+            logger.info("GET /api/invoices - Retrieved {} invoice(s)", invoices.size());
+            return ResponseEntity.ok(invoices);
+        }
     }
 
     @GetMapping("/reservation/{reservationId}")

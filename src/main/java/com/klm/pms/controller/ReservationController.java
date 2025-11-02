@@ -1,6 +1,8 @@
 package com.klm.pms.controller;
 
+import com.klm.pms.dto.PageResponse;
 import com.klm.pms.dto.ReservationDTO;
+import com.klm.pms.dto.ReservationFilterRequest;
 import com.klm.pms.model.Reservation.ReservationStatus;
 import com.klm.pms.service.ReservationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -74,13 +76,65 @@ public class ReservationController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all reservations", description = "Retrieves a list of all reservations in the system")
+    @Operation(summary = "Get all reservations", description = "Retrieves a list of all reservations in the system with optional pagination, sorting, and filtering")
     @ApiResponse(responseCode = "200", description = "List of reservations retrieved successfully")
-    public ResponseEntity<List<ReservationDTO>> getAllReservations() {
-        logger.info("GET /api/reservations - Fetching all reservations");
-        List<ReservationDTO> reservations = reservationService.getAllReservations();
-        logger.info("GET /api/reservations - Retrieved {} reservation(s)", reservations.size());
-        return ResponseEntity.ok(reservations);
+    public ResponseEntity<?> getAllReservations(
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(required = false, defaultValue = "0") Integer page,
+            @Parameter(description = "Page size") @RequestParam(required = false, defaultValue = "10") Integer size,
+            @Parameter(description = "Sort by field (e.g., checkInDate, createdAt, status)") @RequestParam(required = false) String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(required = false, defaultValue = "desc") String sortDir,
+            @Parameter(description = "Reservation number filter") @RequestParam(required = false) String reservationNumber,
+            @Parameter(description = "Guest ID filter") @RequestParam(required = false) Long guestId,
+            @Parameter(description = "Room ID filter") @RequestParam(required = false) Long roomId,
+            @Parameter(description = "Rate type ID filter") @RequestParam(required = false) Long rateTypeId,
+            @Parameter(description = "Status filter") @RequestParam(required = false) ReservationStatus status,
+            @Parameter(description = "Check-in date from (yyyy-MM-dd)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDateFrom,
+            @Parameter(description = "Check-in date to (yyyy-MM-dd)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDateTo,
+            @Parameter(description = "Check-out date from (yyyy-MM-dd)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDateFrom,
+            @Parameter(description = "Check-out date to (yyyy-MM-dd)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDateTo,
+            @Parameter(description = "Minimum number of guests") @RequestParam(required = false) Integer minNumberOfGuests,
+            @Parameter(description = "Maximum number of guests") @RequestParam(required = false) Integer maxNumberOfGuests,
+            @Parameter(description = "Payment status filter") @RequestParam(required = false) String paymentStatus,
+            @Parameter(description = "Search term for reservation number, special requests") @RequestParam(required = false) String searchTerm) {
+        
+        // If pagination or filter parameters are provided, use paginated endpoint
+        if (page != null || size != null || sortBy != null || sortDir != null || 
+            reservationNumber != null || guestId != null || roomId != null || 
+            rateTypeId != null || status != null || checkInDateFrom != null ||
+            checkInDateTo != null || checkOutDateFrom != null || checkOutDateTo != null ||
+            minNumberOfGuests != null || maxNumberOfGuests != null || paymentStatus != null ||
+            searchTerm != null) {
+            
+            // Build filter request
+            ReservationFilterRequest filter = new ReservationFilterRequest();
+            filter.setReservationNumber(reservationNumber);
+            filter.setGuestId(guestId);
+            filter.setRoomId(roomId);
+            filter.setRateTypeId(rateTypeId);
+            filter.setStatus(status);
+            filter.setCheckInDateFrom(checkInDateFrom);
+            filter.setCheckInDateTo(checkInDateTo);
+            filter.setCheckOutDateFrom(checkOutDateFrom);
+            filter.setCheckOutDateTo(checkOutDateTo);
+            filter.setMinNumberOfGuests(minNumberOfGuests);
+            filter.setMaxNumberOfGuests(maxNumberOfGuests);
+            filter.setPaymentStatus(paymentStatus);
+            filter.setSearchTerm(searchTerm);
+            
+            int pageNum = page != null ? page : 0;
+            int pageSize = size != null ? size : 10;
+            
+            logger.info("GET /api/reservations - Fetching reservations with pagination - page: {}, size: {}", pageNum, pageSize);
+            PageResponse<ReservationDTO> response = reservationService.getAllReservationsPaginated(filter, pageNum, pageSize, sortBy, sortDir);
+            logger.info("GET /api/reservations - Retrieved {} reservation(s) out of {} total", response.getContent().size(), response.getTotalElements());
+            return ResponseEntity.ok(response);
+        } else {
+            // Use non-paginated endpoint for backward compatibility
+            logger.info("GET /api/reservations - Fetching all reservations");
+            List<ReservationDTO> reservations = reservationService.getAllReservations();
+            logger.info("GET /api/reservations - Retrieved {} reservation(s)", reservations.size());
+            return ResponseEntity.ok(reservations);
+        }
     }
 
     @GetMapping("/guest/{guestId}")

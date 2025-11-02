@@ -1,6 +1,8 @@
 package com.klm.pms.service;
 
+import com.klm.pms.dto.PageResponse;
 import com.klm.pms.dto.ReservationDTO;
+import com.klm.pms.dto.ReservationFilterRequest;
 import com.klm.pms.mapper.ReservationMapper;
 import com.klm.pms.model.Guest;
 import com.klm.pms.model.RateType;
@@ -11,9 +13,15 @@ import com.klm.pms.repository.GuestRepository;
 import com.klm.pms.repository.RateTypeRepository;
 import com.klm.pms.repository.ReservationRepository;
 import com.klm.pms.repository.RoomRepository;
+import com.klm.pms.repository.specification.ReservationSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -245,6 +253,41 @@ public class ReservationService {
                 .collect(Collectors.toList());
         logger.info("Retrieved {} reservation(s)", reservations.size());
         return reservations;
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ReservationDTO> getAllReservationsPaginated(ReservationFilterRequest filter, int page, int size, String sortBy, String sortDir) {
+        logger.debug("Fetching reservations with pagination - page: {}, size: {}, sortBy: {}, sortDir: {}", page, size, sortBy, sortDir);
+        
+        // Default sorting
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        if (sortBy != null && !sortBy.isEmpty()) {
+            Sort.Direction direction = sortDir != null && sortDir.equalsIgnoreCase("desc") 
+                ? Sort.Direction.DESC 
+                : Sort.Direction.ASC;
+            sort = Sort.by(direction, sortBy);
+        }
+        
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        // Build specification for filtering
+        Specification<Reservation> spec = ReservationSpecification.withFilters(filter);
+        
+        Page<Reservation> reservationPage = reservationRepository.findAll(spec, pageable);
+        
+        List<ReservationDTO> reservationDTOs = reservationPage.getContent().stream()
+                .map(reservationMapper::toDTO)
+                .collect(Collectors.toList());
+        
+        PageResponse<ReservationDTO> response = new PageResponse<>(
+            reservationDTOs,
+            reservationPage.getNumber(),
+            reservationPage.getSize(),
+            reservationPage.getTotalElements()
+        );
+        
+        logger.info("Retrieved {} reservation(s) out of {} total", reservationDTOs.size(), reservationPage.getTotalElements());
+        return response;
     }
 
     @Transactional(readOnly = true)
