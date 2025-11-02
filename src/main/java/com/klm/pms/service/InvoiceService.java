@@ -150,6 +150,55 @@ public class InvoiceService {
         return toDTO(updatedInvoice);
     }
 
+    public InvoiceDTO removeInvoiceItem(Long invoiceId, Long itemId) {
+        logger.info("Removing invoice item ID: {} from invoice ID: {}", itemId, invoiceId);
+        
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> {
+                    logger.error("Invoice not found with ID: {}", invoiceId);
+                    return new RuntimeException("Invoice not found with id: " + invoiceId);
+                });
+        
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            logger.warn("Failed to remove item: Invoice ID {} is already paid", invoiceId);
+            throw new RuntimeException("Cannot remove items from a paid invoice");
+        }
+        
+        // Find the item in the invoice's items list (which is already loaded)
+        InvoiceItem item = invoice.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> {
+                    logger.error("Invoice item ID {} not found in invoice ID {}", itemId, invoiceId);
+                    return new RuntimeException("Invoice item not found or does not belong to this invoice");
+                });
+        
+        // Remove item from invoice's items list
+        invoice.getItems().remove(item);
+        logger.debug("Removed item: {} - Amount: {}", item.getDescription(), item.getAmount());
+        
+        // Delete the item from database
+        invoiceItemRepository.delete(item);
+        
+        // Recalculate totals
+        BigDecimal subtotal = invoice.getItems().stream()
+                .map(InvoiceItem::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
+        BigDecimal totalAmount = subtotal.add(taxAmount).subtract(invoice.getDiscountAmount());
+        
+        invoice.setSubtotal(subtotal);
+        invoice.setTaxAmount(taxAmount);
+        invoice.setTotalAmount(totalAmount);
+        logger.debug("Recalculated totals - Subtotal: {}, Tax: {}, Total: {}", subtotal, taxAmount, totalAmount);
+        
+        Invoice updatedInvoice = invoiceRepository.save(invoice);
+        logger.info("Successfully removed invoice item ID: {} from invoice ID: {}", itemId, invoiceId);
+        
+        return toDTO(updatedInvoice);
+    }
+
     public InvoiceDTO markInvoiceAsPaid(Long invoiceId, String paymentMethod) {
         logger.info("Marking invoice ID: {} as paid with payment method: {}", invoiceId, paymentMethod);
         

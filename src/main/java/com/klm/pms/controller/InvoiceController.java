@@ -120,6 +120,22 @@ public class InvoiceController {
         return ResponseEntity.ok(invoice);
     }
 
+    @DeleteMapping("/{invoiceId}/items/{itemId}")
+    @Operation(summary = "Remove item from invoice", description = "Removes an item from an existing invoice")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Item removed successfully"),
+            @ApiResponse(responseCode = "404", description = "Invoice or invoice item not found"),
+            @ApiResponse(responseCode = "400", description = "Cannot remove items from a paid invoice")
+    })
+    public ResponseEntity<InvoiceDTO> removeInvoiceItem(
+            @Parameter(description = "Invoice ID", required = true) @PathVariable Long invoiceId,
+            @Parameter(description = "Invoice Item ID", required = true) @PathVariable Long itemId) {
+        logger.info("DELETE /api/invoices/{}/items/{} - Removing item from invoice", invoiceId, itemId);
+        InvoiceDTO invoice = invoiceService.removeInvoiceItem(invoiceId, itemId);
+        logger.info("DELETE /api/invoices/{}/items/{} - Successfully removed item from invoice", invoiceId, itemId);
+        return ResponseEntity.ok(invoice);
+    }
+
     @PostMapping("/{invoiceId}/pay")
     @Operation(summary = "Mark invoice as paid", description = "Marks an invoice as paid and records payment method")
     @ApiResponses(value = {
