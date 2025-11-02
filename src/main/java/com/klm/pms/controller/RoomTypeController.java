@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/room-types")
 @Tag(name = "Room Type Management", description = "APIs for managing hotel room types")

@@ -19,7 +19,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByStatus(ReservationStatus status);
     
     @Query("SELECT r FROM Reservation r WHERE r.room.id = :roomId AND " +
-           "((r.checkInDate <= :checkOutDate AND r.checkOutDate >= :checkInDate) AND " +
+           "((r.checkInDate < :checkOutDate AND r.checkOutDate > :checkInDate) AND " +
            "r.status NOT IN ('CANCELLED', 'NO_SHOW', 'CHECKED_OUT'))")
     List<Reservation> findConflictingReservations(
             @Param("roomId") Long roomId,

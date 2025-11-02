@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/invoices")
 @Tag(name = "Invoice Management", description = "APIs for managing invoices and billing")

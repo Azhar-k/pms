@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
 
+@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/rate-types")
 @Tag(name = "Rate Type Management", description = "APIs for managing rate types and room type rates")

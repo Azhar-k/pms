@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+@CrossOrigin("*")
 @RestController
 @RequestMapping("/api/reservations")
 @Tag(name = "Reservation Management", description = "APIs for managing hotel reservations, check-in, and check-out")
@@ -146,6 +147,22 @@ public class ReservationController {
         ReservationDTO reservation = reservationService.checkOut(id);
         logger.info("POST /api/reservations/{}/check-out - Successfully checked out", id);
         return ResponseEntity.ok(reservation);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update a reservation", description = "Updates an existing reservation. Allows changing room, dates, guest, rate type, and other details. Cannot update checked-out reservations.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Reservation updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Reservation not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data, room not available, or cannot update checked-out reservation")
+    })
+    public ResponseEntity<ReservationDTO> updateReservation(
+            @Parameter(description = "Reservation ID", required = true) @PathVariable Long id,
+            @Valid @RequestBody ReservationDTO reservationDTO) {
+        logger.info("PUT /api/reservations/{} - Updating reservation", id);
+        ReservationDTO updatedReservation = reservationService.updateReservation(id, reservationDTO);
+        logger.info("PUT /api/reservations/{} - Successfully updated reservation", id);
+        return ResponseEntity.ok(updatedReservation);
     }
 
     @PostMapping("/{id}/cancel")

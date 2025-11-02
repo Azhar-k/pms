@@ -162,12 +162,14 @@ public class RoomService {
             throw new RuntimeException("Check-in date must be before check-out date");
         }
         
-        // Get all rooms that are in READY status (not MAINTENANCE or CLEANING)
-        List<Room> allReadyRooms = roomRepository.findByStatus(RoomStatus.READY);
-        logger.debug("Found {} room(s) with READY status", allReadyRooms.size());
+        // Get all rooms that are in READY or CLEANING status (not MAINTENANCE)
+        List<Room> availableStatusRooms = roomRepository.findAll().stream()
+                .filter(room -> room.getStatus() == RoomStatus.READY || room.getStatus() == RoomStatus.CLEANING)
+                .collect(Collectors.toList());
+        logger.debug("Found {} room(s) with READY or CLEANING status", availableStatusRooms.size());
         
         // Find all rooms that have conflicting reservations for the given date range
-        Set<Long> occupiedRoomIds = allReadyRooms.stream()
+        Set<Long> occupiedRoomIds = availableStatusRooms.stream()
                 .filter(room -> {
                     List<Reservation> conflictingReservations = reservationRepository.findConflictingReservations(
                             room.getId(), checkInDate, checkOutDate);
@@ -179,7 +181,7 @@ public class RoomService {
         logger.debug("Found {} room(s) with conflicting reservations", occupiedRoomIds.size());
         
         // Filter out rooms with conflicts
-        List<RoomDTO> availableRooms = allReadyRooms.stream()
+        List<RoomDTO> availableRooms = availableStatusRooms.stream()
                 .filter(room -> !occupiedRoomIds.contains(room.getId()))
                 .map(roomMapper::toDTO)
                 .collect(Collectors.toList());

@@ -276,5 +276,143 @@ public class ReservationService {
         logger.info("Retrieved {} reservation(s) in date range {} to {}", reservations.size(), startDate, endDate);
         return reservations;
     }
+
+    public ReservationDTO updateReservation(Long id, ReservationDTO reservationDTO) {
+        logger.info("Updating reservation ID: {}", id);
+        
+        Reservation existingReservation = reservationRepository.findById(id)
+                .orElseThrow(() -> {
+                    logger.error("Reservation not found with ID: {}", id);
+                    return new RuntimeException("Reservation not found with id: " + id);
+                });
+        
+        // Cannot update checked out reservations
+        if (existingReservation.getStatus() == ReservationStatus.CHECKED_OUT) {
+            logger.warn("Failed to update reservation ID {}: Already checked out", id);
+            throw new RuntimeException("Cannot update a reservation that has been checked out");
+        }
+        
+        // Validate dates
+        if (reservationDTO.getCheckInDate() != null && reservationDTO.getCheckOutDate() != null) {
+            if (reservationDTO.getCheckInDate().isAfter(reservationDTO.getCheckOutDate())) {
+                logger.warn("Failed to update reservation: Check-in date {} is after check-out date {}", 
+                        reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate());
+                throw new RuntimeException("Check-in date must be before check-out date");
+            }
+        }
+        
+        // Get guest if changed
+        Guest guest = existingReservation.getGuest();
+        if (reservationDTO.getGuestId() != null && 
+            !reservationDTO.getGuestId().equals(existingReservation.getGuest().getId())) {
+            guest = guestRepository.findById(reservationDTO.getGuestId())
+                    .orElseThrow(() -> {
+                        logger.error("Guest not found with ID: {}", reservationDTO.getGuestId());
+                        return new RuntimeException("Guest not found with id: " + reservationDTO.getGuestId());
+                    });
+            logger.debug("Guest changed from {} {} to {} {}", 
+                    existingReservation.getGuest().getFirstName(), existingReservation.getGuest().getLastName(),
+                    guest.getFirstName(), guest.getLastName());
+        }
+        
+        // Get room if changed
+        Room room = existingReservation.getRoom();
+        boolean roomChanged = reservationDTO.getRoomId() != null && 
+                             !reservationDTO.getRoomId().equals(existingReservation.getRoom().getId());
+        
+        if (roomChanged) {
+            room = roomRepository.findById(reservationDTO.getRoomId())
+                    .orElseThrow(() -> {
+                        logger.error("Room not found with ID: {}", reservationDTO.getRoomId());
+                        return new RuntimeException("Room not found with id: " + reservationDTO.getRoomId());
+                    });
+            logger.debug("Room changed from {} to {}", existingReservation.getRoom().getRoomNumber(), room.getRoomNumber());
+        }
+        
+        // Get rate type if changed
+        RateType rateType = existingReservation.getRateType();
+        if (reservationDTO.getRateTypeId() != null && 
+            !reservationDTO.getRateTypeId().equals(existingReservation.getRateType().getId())) {
+            rateType = rateTypeRepository.findById(reservationDTO.getRateTypeId())
+                    .orElseThrow(() -> {
+                        logger.error("Rate type not found with ID: {}", reservationDTO.getRateTypeId());
+                        return new RuntimeException("Rate type not found with id: " + reservationDTO.getRateTypeId());
+                    });
+            logger.debug("Rate type changed to: {}", rateType.getName());
+        }
+        
+        // Save original dates for comparison
+        LocalDate originalCheckInDate = existingReservation.getCheckInDate();
+        LocalDate originalCheckOutDate = existingReservation.getCheckOutDate();
+        
+        // Determine dates to use for availability check
+        LocalDate checkInDate = reservationDTO.getCheckInDate() != null ? 
+                reservationDTO.getCheckInDate() : originalCheckInDate;
+        LocalDate checkOutDate = reservationDTO.getCheckOutDate() != null ? 
+                reservationDTO.getCheckOutDate() : originalCheckOutDate;
+        
+        // Check room availability if room or dates changed
+        boolean datesChanged = !checkInDate.equals(originalCheckInDate) || !checkOutDate.equals(originalCheckOutDate);
+        if (roomChanged || datesChanged) {
+            List<Reservation> conflictingReservations = reservationRepository.findConflictingReservations(
+                    room.getId(), checkInDate, checkOutDate);
+            
+            // Exclude current reservation from conflicts
+            conflictingReservations = conflictingReservations.stream()
+                    .filter(r -> !r.getId().equals(existingReservation.getId()))
+                    .collect(Collectors.toList());
+            
+            if (!conflictingReservations.isEmpty()) {
+                logger.warn("Failed to update reservation: Room {} has {} conflicting reservation(s)", 
+                        room.getRoomNumber(), conflictingReservations.size());
+                throw new RuntimeException("Room is not available for the selected dates");
+            }
+        }
+        
+        // Check room capacity if number of guests changed
+        if (reservationDTO.getNumberOfGuests() != null && 
+            !reservationDTO.getNumberOfGuests().equals(existingReservation.getNumberOfGuests())) {
+            if (room.getMaxOccupancy() != null && reservationDTO.getNumberOfGuests() > room.getMaxOccupancy()) {
+                logger.warn("Failed to update reservation: Number of guests {} exceeds room capacity {}", 
+                        reservationDTO.getNumberOfGuests(), room.getMaxOccupancy());
+                throw new RuntimeException("Number of guests exceeds room capacity");
+            }
+        }
+        
+        // Update reservation fields
+        if (reservationDTO.getCheckInDate() != null) {
+            existingReservation.setCheckInDate(reservationDTO.getCheckInDate());
+        }
+        if (reservationDTO.getCheckOutDate() != null) {
+            existingReservation.setCheckOutDate(reservationDTO.getCheckOutDate());
+        }
+        if (reservationDTO.getNumberOfGuests() != null) {
+            existingReservation.setNumberOfGuests(reservationDTO.getNumberOfGuests());
+        }
+        if (reservationDTO.getSpecialRequests() != null) {
+            existingReservation.setSpecialRequests(reservationDTO.getSpecialRequests());
+        }
+        
+        existingReservation.setGuest(guest);
+        existingReservation.setRoom(room);
+        existingReservation.setRateType(rateType);
+        
+        // Recalculate total amount if dates, room type, or rate type changed
+        boolean rateTypeChanged = !rateType.getId().equals(existingReservation.getRateType().getId());
+        boolean roomTypeChanged = roomChanged || 
+                                  !room.getRoomType().getId().equals(existingReservation.getRoom().getRoomType().getId());
+        
+        if (datesChanged || roomTypeChanged || rateTypeChanged) {
+            BigDecimal ratePerNight = rateTypeService.getRateForRoomType(rateType.getId(), room.getRoomType().getId());
+            long nights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
+            BigDecimal totalAmount = ratePerNight.multiply(BigDecimal.valueOf(nights));
+            existingReservation.setTotalAmount(totalAmount);
+            logger.debug("Recalculated total amount: {} for {} night(s) at rate: {}", totalAmount, nights, ratePerNight);
+        }
+        
+        Reservation updatedReservation = reservationRepository.save(existingReservation);
+        logger.info("Successfully updated reservation ID: {}", id);
+        return reservationMapper.toDTO(updatedReservation);
+    }
 }
 
