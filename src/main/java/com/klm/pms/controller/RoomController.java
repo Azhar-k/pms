@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -79,12 +80,30 @@ public class RoomController {
     }
 
     @GetMapping("/available")
-    @Operation(summary = "Get available rooms", description = "Retrieves a list of all available rooms")
+    @Operation(summary = "Get available rooms", description = "Retrieves a list of available rooms for today (defaults to today and tomorrow). Room availability is determined by date range and reservation conflicts, not just room status.")
     @ApiResponse(responseCode = "200", description = "List of available rooms retrieved successfully")
     public ResponseEntity<List<RoomDTO>> getAvailableRooms() {
         logger.info("GET /api/rooms/available - Fetching available rooms");
         List<RoomDTO> rooms = roomService.getAvailableRooms();
         logger.info("GET /api/rooms/available - Retrieved {} available room(s)", rooms.size());
+        return ResponseEntity.ok(rooms);
+    }
+
+    @GetMapping("/available/range")
+    @Operation(summary = "Get available rooms for date range", description = "Retrieves a list of available rooms for a specific date range. Room availability is determined by checking room status (must be READY) and reservation conflicts for the given date range.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of available rooms retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid date range")
+    })
+    public ResponseEntity<List<RoomDTO>> getAvailableRoomsForDateRange(
+            @Parameter(description = "Check-in date (format: yyyy-MM-dd)", required = true) 
+            @RequestParam LocalDate checkInDate,
+            @Parameter(description = "Check-out date (format: yyyy-MM-dd)", required = true) 
+            @RequestParam LocalDate checkOutDate) {
+        logger.info("GET /api/rooms/available/range - Fetching available rooms for date range: {} to {}", checkInDate, checkOutDate);
+        List<RoomDTO> rooms = roomService.getAvailableRoomsForDateRange(checkInDate, checkOutDate);
+        logger.info("GET /api/rooms/available/range - Retrieved {} available room(s) for date range {} to {}", 
+                rooms.size(), checkInDate, checkOutDate);
         return ResponseEntity.ok(rooms);
     }
 

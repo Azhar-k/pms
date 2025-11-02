@@ -27,7 +27,7 @@ public class Room {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private RoomStatus status = RoomStatus.AVAILABLE;
+    private RoomStatus status = RoomStatus.READY;
 
     private Integer maxOccupancy;
 
@@ -176,11 +176,9 @@ public class Room {
     }
 
     public enum RoomStatus {
-        AVAILABLE,
-        OCCUPIED,
+        READY,
         MAINTENANCE,
-        CLEANING,
-        RESERVED
+        CLEANING
     }
 }
 

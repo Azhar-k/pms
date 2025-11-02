@@ -2,9 +2,11 @@ package com.klm.pms.service;
 
 import com.klm.pms.dto.RoomDTO;
 import com.klm.pms.mapper.RoomMapper;
+import com.klm.pms.model.Reservation;
 import com.klm.pms.model.Room;
 import com.klm.pms.model.Room.RoomStatus;
 import com.klm.pms.model.RoomType;
+import com.klm.pms.repository.ReservationRepository;
 import com.klm.pms.repository.RoomRepository;
 import com.klm.pms.repository.RoomTypeRepository;
 import org.slf4j.Logger;
@@ -13,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +34,9 @@ public class RoomService {
 
     @Autowired
     private RoomMapper roomMapper;
+
+    @Autowired
+    private ReservationRepository reservationRepository;
 
     public RoomDTO createRoom(RoomDTO roomDTO) {
         logger.info("Creating new room with number: {} and room type ID: {}", roomDTO.getRoomNumber(), roomDTO.getRoomTypeId());
@@ -140,11 +147,46 @@ public class RoomService {
     @Transactional(readOnly = true)
     public List<RoomDTO> getAvailableRooms() {
         logger.debug("Fetching available rooms");
-        List<RoomDTO> rooms = roomRepository.findByStatus(RoomStatus.AVAILABLE).stream()
+        // Default to today for check-in and check-out + 1 day
+        LocalDate checkInDate = LocalDate.now();
+        LocalDate checkOutDate = checkInDate.plusDays(1);
+        return getAvailableRoomsForDateRange(checkInDate, checkOutDate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RoomDTO> getAvailableRoomsForDateRange(LocalDate checkInDate, LocalDate checkOutDate) {
+        logger.debug("Fetching available rooms for date range: {} to {}", checkInDate, checkOutDate);
+        
+        if (checkInDate.isAfter(checkOutDate)) {
+            logger.warn("Invalid date range: check-in date {} is after check-out date {}", checkInDate, checkOutDate);
+            throw new RuntimeException("Check-in date must be before check-out date");
+        }
+        
+        // Get all rooms that are in READY status (not MAINTENANCE or CLEANING)
+        List<Room> allReadyRooms = roomRepository.findByStatus(RoomStatus.READY);
+        logger.debug("Found {} room(s) with READY status", allReadyRooms.size());
+        
+        // Find all rooms that have conflicting reservations for the given date range
+        Set<Long> occupiedRoomIds = allReadyRooms.stream()
+                .filter(room -> {
+                    List<Reservation> conflictingReservations = reservationRepository.findConflictingReservations(
+                            room.getId(), checkInDate, checkOutDate);
+                    return !conflictingReservations.isEmpty();
+                })
+                .map(Room::getId)
+                .collect(Collectors.toSet());
+        
+        logger.debug("Found {} room(s) with conflicting reservations", occupiedRoomIds.size());
+        
+        // Filter out rooms with conflicts
+        List<RoomDTO> availableRooms = allReadyRooms.stream()
+                .filter(room -> !occupiedRoomIds.contains(room.getId()))
                 .map(roomMapper::toDTO)
                 .collect(Collectors.toList());
-        logger.info("Retrieved {} available room(s)", rooms.size());
-        return rooms;
+        
+        logger.info("Retrieved {} available room(s) for date range {} to {}", 
+                availableRooms.size(), checkInDate, checkOutDate);
+        return availableRooms;
     }
 
     @Transactional(readOnly = true)

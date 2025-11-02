@@ -123,10 +123,7 @@ public class ReservationService {
         reservation.setTotalAmount(totalAmount);
         logger.debug("Calculated total amount: {} for {} night(s)", totalAmount, nights);
         
-        // Update room status
-        room.setStatus(Room.RoomStatus.RESERVED);
-        roomRepository.save(room);
-        logger.debug("Room {} status updated to RESERVED", room.getRoomNumber());
+        // Room status is not updated here - availability is determined by date range and reservations
         
         Reservation savedReservation = reservationRepository.save(reservation);
         logger.info("Successfully created reservation with ID: {} and number: {} for total amount: {}", 
@@ -153,14 +150,11 @@ public class ReservationService {
         reservation.setActualCheckInTime(LocalDateTime.now());
         logger.debug("Reservation {} status updated to CHECKED_IN", reservation.getReservationNumber());
         
-        // Update room status
-        Room room = reservation.getRoom();
-        room.setStatus(Room.RoomStatus.OCCUPIED);
-        roomRepository.save(room);
-        logger.debug("Room {} status updated to OCCUPIED", room.getRoomNumber());
+        // Room status is not updated here - availability is determined by date range and reservations
         
         Reservation updatedReservation = reservationRepository.save(reservation);
-        logger.info("Successfully checked in reservation ID: {} for room: {}", reservationId, room.getRoomNumber());
+        logger.info("Successfully checked in reservation ID: {} for room: {}", 
+                reservationId, reservation.getRoom().getRoomNumber());
         return reservationMapper.toDTO(updatedReservation);
     }
 
@@ -211,13 +205,8 @@ public class ReservationService {
         reservation.setStatus(ReservationStatus.CANCELLED);
         logger.debug("Reservation {} status updated to CANCELLED", reservation.getReservationNumber());
         
-        // Update room status
-        Room room = reservation.getRoom();
-        if (room.getStatus() == Room.RoomStatus.RESERVED || room.getStatus() == Room.RoomStatus.OCCUPIED) {
-            room.setStatus(Room.RoomStatus.AVAILABLE);
-            roomRepository.save(room);
-            logger.debug("Room {} status updated to AVAILABLE", room.getRoomNumber());
-        }
+        // Room status is not updated here - availability is determined by date range and reservations
+        // If room status is MAINTENANCE or CLEANING, it remains as is. If it's READY, it stays READY.
         
         Reservation updatedReservation = reservationRepository.save(reservation);
         logger.info("Successfully cancelled reservation ID: {}", reservationId);
