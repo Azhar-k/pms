@@ -10,26 +10,26 @@ The easiest way to run tests is using Docker containers. This automatically sets
 
 **Linux/Mac:**
 ```bash
-chmod +x docker-test.sh
-./docker-test.sh
+chmod +x docker/docker-test.sh
+./docker/docker-test.sh
 ```
 
 **Windows:**
 ```cmd
-docker-test.bat
+docker\docker-test.bat
 ```
 
 **Skip Docker Build (use existing images):**
 ```bash
 # Linux/Mac
-./docker-test.sh --skip-build
+./docker/docker-test.sh --skip-build
 # or
-SKIP_DOCKER_BUILD=true ./docker-test.sh
+SKIP_DOCKER_BUILD=true ./docker/docker-test.sh
 
 # Windows
-docker-test.bat --skip-build
+docker\docker-test.bat --skip-build
 # or
-set SKIP_DOCKER_BUILD=true && docker-test.bat
+set SKIP_DOCKER_BUILD=true && docker\docker-test.bat
 ```
 
 The script will:
@@ -39,7 +39,7 @@ The script will:
 4. Run integration tests
 5. Clean up containers automatically
 
-See [README-DOCKER-TESTING.md](README-DOCKER-TESTING.md) for detailed Docker setup instructions.
+See [docker/README-DOCKER-TESTING.md](docker/README-DOCKER-TESTING.md) for detailed Docker setup instructions.
 
 ### Option B: Manual Setup
 

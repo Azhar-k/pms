@@ -2,8 +2,18 @@
 REM Script to build Docker containers, run tests, and cleanup for Windows
 REM Usage: docker-test.bat [--skip-build]
 REM   --skip-build: Skip Docker image build phase (use existing images)
+REM 
+REM Note: This script should be run from the project root directory
 
 setlocal enabledelayedexpansion
+
+REM Get the directory where this script is located
+set "SCRIPT_DIR=%~dp0"
+REM Get the project root directory (parent of docker directory)
+for %%I in ("%SCRIPT_DIR%..") do set "PROJECT_ROOT=%%~fI"
+
+REM Change to project root to ensure relative paths work correctly
+cd /d "%PROJECT_ROOT%"
 
 REM Parse command line arguments
 set "SKIP_BUILD=false"
@@ -22,7 +32,7 @@ REM Function to cleanup
 :cleanup
 echo.
 echo Cleaning up Docker containers...
-docker compose down -v
+docker compose -f docker/docker-compose.yml down -v
 echo Cleanup completed
 goto :eof
 
@@ -34,7 +44,7 @@ if "%SKIP_BUILD%"=="true" (
     echo Step 1: Skipping Docker image build (using existing images)...
 ) else (
     echo Step 1: Building Docker images...
-    docker compose build
+    docker compose -f docker/docker-compose.yml build
     if errorlevel 1 (
         echo Error building Docker images
         call :cleanup
@@ -44,7 +54,7 @@ if "%SKIP_BUILD%"=="true" (
 
 echo.
 echo Step 2: Starting Docker containers...
-docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 if errorlevel 1 (
     echo Error starting Docker containers
     call :cleanup
@@ -57,7 +67,7 @@ echo Waiting for PostgreSQL...
 set TIMEOUT=60
 set ELAPSED=0
 :wait_postgres
-docker compose exec -T postgres pg_isready -U postgres >nul 2>&1
+docker compose -f docker/docker-compose.yml exec -T postgres pg_isready -U postgres >nul 2>&1
 if errorlevel 1 (
     if !ELAPSED! geq !TIMEOUT! (
         echo PostgreSQL failed to start within !TIMEOUT! seconds
@@ -79,7 +89,7 @@ curl -f http://localhost:8081/api/guests >nul 2>&1
 if errorlevel 1 (
     if !ELAPSED! geq !TIMEOUT! (
         echo Application failed to start within !TIMEOUT! seconds
-        docker compose logs app
+        docker compose -f docker/docker-compose.yml logs app
         call :cleanup
         exit /b 1
     )
@@ -108,7 +118,7 @@ if %TEST_RESULT% equ 0 (
     echo ==========================================
     echo.
     echo Application logs:
-    docker compose logs app --tail=50
+    docker compose -f docker/docker-compose.yml logs app --tail=50
 )
 
 call :cleanup
