@@ -1049,7 +1049,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/rooms/available/range")
                 .then()
-                .statusCode(500); // Service throws RuntimeException which results in 500
+                .statusCode(400); // Application returns 400 for invalid date range (via GlobalExceptionHandler)
     }
 
     @Test
@@ -1111,7 +1111,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/rooms/type/{roomTypeId}", 99999L)
                 .then()
-                .statusCode(500); // Service throws RuntimeException which results in 500
+                .statusCode(400); // Application returns 400 for invalid room type ID (via GlobalExceptionHandler)
     }
 
     // ==================== UPDATE OPERATIONS ====================
