@@ -4,6 +4,45 @@ This document provides instructions for running REST Assured integration tests f
 
 ## Quick Start
 
+### Option A: Docker-Based Testing (Recommended)
+
+The easiest way to run tests is using Docker containers. This automatically sets up both the application and database.
+
+**Linux/Mac:**
+```bash
+chmod +x docker-test.sh
+./docker-test.sh
+```
+
+**Windows:**
+```cmd
+docker-test.bat
+```
+
+**Skip Docker Build (use existing images):**
+```bash
+# Linux/Mac
+./docker-test.sh --skip-build
+# or
+SKIP_DOCKER_BUILD=true ./docker-test.sh
+
+# Windows
+docker-test.bat --skip-build
+# or
+set SKIP_DOCKER_BUILD=true && docker-test.bat
+```
+
+The script will:
+1. Build Docker images (unless `--skip-build` is used)
+2. Start containers (PostgreSQL on port 5433, App on port 8081)
+3. Wait for services to be ready
+4. Run integration tests
+5. Clean up containers automatically
+
+See [README-DOCKER-TESTING.md](README-DOCKER-TESTING.md) for detailed Docker setup instructions.
+
+### Option B: Manual Setup
+
 ### 1. Start the Application
 
 First, ensure your application is running:
@@ -90,13 +129,39 @@ src/test/java/com/klm/pms/
 
 ### Test Configuration (`TestConfig.java`)
 
-- **Base URL**: `http://localhost:8080`
+**Default (Docker setup):**
+- **Base URL**: `http://localhost:8081`
+- **API Port**: `8081` (Docker container port)
 - **API Path**: `/api`
 - **Content Type**: `application/json`
 - **Logging**: Enabled on validation failures
 
+**Manual setup:**
+- **Base URL**: `http://localhost:8080`
+- **API Port**: `8080`
+
+**Override via environment variables:**
+```bash
+export TEST_API_HOST=localhost
+export TEST_API_PORT=8080  # or 8081 for Docker
+mvn test
+```
+
+**Override via system properties:**
+```bash
+mvn test -Dtest.api.host=localhost -Dtest.api.port=8080
+```
+
 ### Database Requirements
 
+**Docker setup:**
+- **Database**: PostgreSQL (in Docker)
+- **Name**: `pms`
+- **Host**: `localhost:5433` (mapped from container port 5432)
+- **Username**: `postgres`
+- **Password**: `postgres`
+
+**Manual setup:**
 - **Database**: PostgreSQL
 - **Name**: `pms`
 - **Host**: `localhost:5432`
@@ -161,18 +226,27 @@ mvn test -Pintegration-tests
 **Problem**: `java.net.ConnectException: Connection refused`
 
 **Solution**: 
-- Ensure the application is running on port 8080
-- Check if port 8080 is available: `netstat -an | grep 8080`
+- **Docker setup**: Ensure containers are running: `docker compose ps`
+- **Manual setup**: Ensure the application is running on port 8080
+- Check if ports are available: 
+  - Docker: `netstat -an | grep 8081` or `netstat -an | grep 5433`
+  - Manual: `netstat -an | grep 8080` or `netstat -an | grep 5432`
 - Verify the application started successfully
+- Check container logs: `docker compose logs app`
 
 ### Database Connection Error
 
 **Problem**: Database connection failures
 
 **Solution**:
-- Verify PostgreSQL is running: `pg_isready`
-- Check database credentials in `application.properties`
-- Ensure database `pms` exists: `psql -U postgres -c "CREATE DATABASE pms;"`
+- **Docker setup**: 
+  - Check PostgreSQL container: `docker compose ps postgres`
+  - View logs: `docker compose logs postgres`
+  - Verify container is healthy: `docker compose exec postgres pg_isready -U postgres`
+- **Manual setup**:
+  - Verify PostgreSQL is running: `pg_isready`
+  - Check database credentials in `application.properties`
+  - Ensure database `pms` exists: `psql -U postgres -c "CREATE DATABASE pms;"`
 
 ### Test Failures Due to Existing Data
 
@@ -188,9 +262,14 @@ mvn test -Pintegration-tests
 **Problem**: API endpoints return 404
 
 **Solution**:
-- Verify context path is `/` (not `/api` or other)
-- Check Swagger UI to confirm endpoint paths
-- Ensure CORS is configured correctly
+- **Docker setup**: 
+  - Verify application container is running: `docker compose ps app`
+  - Check application logs: `docker compose logs app --tail=50`
+  - Test endpoint: `curl http://localhost:8081/api/guests`
+- **Manual setup**:
+  - Verify context path is `/` (not `/api` or other)
+  - Check Swagger UI to confirm endpoint paths
+  - Ensure CORS is configured correctly
 
 ### Timeout Issues
 
@@ -207,12 +286,27 @@ mvn test -Pintegration-tests
 
 ## Best Practices
 
-1. **Always start the application before running tests**
-2. **Use unique test data** to avoid conflicts
-3. **Clean up test data** after tests complete
-4. **Run tests in order** (they use `@Order` annotation)
-5. **Check logs** for detailed error messages
-6. **Verify database state** before and after tests
+1. **Use Docker for testing** - Ensures consistent environment
+2. **Always start services before running tests** (Docker script does this automatically)
+3. **Use unique test data** to avoid conflicts (tests use timestamps)
+4. **Clean up test data** after tests complete (automatic with `@AfterAll`)
+5. **Run tests in order** (they use `@Order` annotation)
+6. **Check logs** for detailed error messages
+7. **Verify database state** before and after tests
+8. **Use different ports** for Docker to avoid conflicts with local services
+
+## Docker vs Manual Setup
+
+| Feature | Docker Setup | Manual Setup |
+|---------|-------------|--------------|
+| **Port** | 8081 (app), 5433 (db) | 8080 (app), 5432 (db) |
+| **Setup** | Automatic | Manual |
+| **Isolation** | Complete | Shared environment |
+| **Cleanup** | Automatic | Manual |
+| **CI/CD** | Easy integration | Requires setup |
+| **Dependencies** | Docker only | Local DB + App |
+
+**Recommendation**: Use Docker setup for consistent, isolated testing.
 
 ## Next Steps
 
@@ -228,4 +322,7 @@ Follow the same pattern used in `GuestControllerIntegrationTest`.
 - [REST Assured Documentation](https://rest-assured.io/)
 - [JUnit 5 Documentation](https://junit.org/junit5/docs/current/user-guide/)
 - [Maven Surefire Plugin](https://maven.apache.org/surefire/maven-surefire-plugin/)
+- [Docker Documentation](https://docs.docker.com/)
+- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [README-DOCKER-TESTING.md](README-DOCKER-TESTING.md) - Detailed Docker setup guide
 
