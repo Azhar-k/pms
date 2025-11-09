@@ -84,9 +84,18 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .extract()
                 .response();
         
-        List<Map<String, Object>> guests = guestResponse.jsonPath().getList("content");
-        if (guests == null || guests.isEmpty()) {
-            guests = guestResponse.jsonPath().getList("$");
+        // Check if response is paginated (has 'content' field) or plain list
+        Object content = guestResponse.jsonPath().get("content");
+        List<Map<String, Object>> guests = null;
+        if (content != null) {
+            // It's a paginated response
+            guests = guestResponse.jsonPath().getList("content");
+        } else {
+            // It's a plain list
+            Object root = guestResponse.jsonPath().get("$");
+            if (root instanceof List) {
+                guests = guestResponse.jsonPath().getList("$");
+            }
         }
         
         if (guests != null && !guests.isEmpty()) {
@@ -130,7 +139,12 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .extract()
                 .response();
         
-        List<Map<String, Object>> roomTypes = roomTypeResponse.jsonPath().getList("$");
+        // Room types endpoint returns a plain list
+        Object root = roomTypeResponse.jsonPath().get("$");
+        List<Map<String, Object>> roomTypes = null;
+        if (root instanceof List) {
+            roomTypes = roomTypeResponse.jsonPath().getList("$");
+        }
         Long roomTypeId = null;
         if (roomTypes != null && !roomTypes.isEmpty()) {
             roomTypeId = ((Number) roomTypes.get(0).get("id")).longValue();
@@ -167,9 +181,18 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .extract()
                 .response();
         
-        List<Map<String, Object>> rooms = roomResponse.jsonPath().getList("content");
-        if (rooms == null || rooms.isEmpty()) {
-            rooms = roomResponse.jsonPath().getList("$");
+        // Check if response is paginated (has 'content' field) or plain list
+        Object content = roomResponse.jsonPath().get("content");
+        List<Map<String, Object>> rooms = null;
+        if (content != null) {
+            // It's a paginated response
+            rooms = roomResponse.jsonPath().getList("content");
+        } else {
+            // It's a plain list
+            Object root = roomResponse.jsonPath().get("$");
+            if (root instanceof List) {
+                rooms = roomResponse.jsonPath().getList("$");
+            }
         }
         
         if (rooms != null && !rooms.isEmpty()) {
@@ -207,7 +230,12 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .extract()
                 .response();
         
-        List<Map<String, Object>> rateTypes = rateTypeResponse.jsonPath().getList("$");
+        // Rate types endpoint returns a plain list
+        Object root = rateTypeResponse.jsonPath().get("$");
+        List<Map<String, Object>> rateTypes = null;
+        if (root instanceof List) {
+            rateTypes = rateTypeResponse.jsonPath().getList("$");
+        }
         if (rateTypes != null && !rateTypes.isEmpty()) {
             rateTypeId = ((Number) rateTypes.get(0).get("id")).longValue();
             
