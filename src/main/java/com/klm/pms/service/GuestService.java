@@ -35,12 +35,11 @@ public class GuestService {
 
     public GuestDTO createGuest(GuestDTO guestDTO) {
         logger.info("Creating new guest with email: {}", guestDTO.getEmail());
-        
-        // Check if email already exists
-//        if (guestDTO.getEmail() != null && guestRepository.findByEmail(guestDTO.getEmail()).isPresent()) {
-//            logger.warn("Failed to create guest: Email {} already exists", guestDTO.getEmail());
-//            throw new RuntimeException("Guest with email " + guestDTO.getEmail() + " already exists");
-//        }
+
+        if (guestDTO.getEmail() != null && guestRepository.findByEmail(guestDTO.getEmail()).isPresent()) {
+            logger.warn("Failed to create guest: Email {} already exists", guestDTO.getEmail());
+            throw new RuntimeException("Guest with email " + guestDTO.getEmail() + " already exists");
+        }
         
         logger.debug("Guest validation passed for email: {}", guestDTO.getEmail());
         

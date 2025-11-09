@@ -102,7 +102,7 @@ echo Application is ready
 
 echo.
 echo Step 4: Running integration tests...
-mvn clean test -Dtest=GuestControllerIntegrationTest
+mvn clean test
 
 set TEST_RESULT=%ERRORLEVEL%
 

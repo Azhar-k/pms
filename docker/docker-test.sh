@@ -98,7 +98,7 @@ done
 echo -e " ${GREEN}Application is ready (took ${elapsed}s)${NC}"
 
 echo -e "\n${YELLOW}Step 4: Running integration tests...${NC}"
-mvn clean test -Dtest=GuestControllerIntegrationTest
+mvn clean test
 
 TEST_RESULT=$?
 

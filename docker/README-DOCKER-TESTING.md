@@ -82,7 +82,7 @@ curl http://localhost:8081/api/guests
 
 **3. Run tests:**
 ```bash
-mvn clean test -Dtest=GuestControllerIntegrationTest
+mvn clean test
 ```
 
 **4. Stop and cleanup:**
