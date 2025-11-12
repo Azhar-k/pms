@@ -140,9 +140,9 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .response();
         
         // Room types endpoint returns a plain list
-        Object root = roomTypeResponse.jsonPath().get("$");
+        Object roomTypesRoot = roomTypeResponse.jsonPath().get("$");
         List<Map<String, Object>> roomTypes = null;
-        if (root instanceof List) {
+        if (roomTypesRoot instanceof List) {
             roomTypes = roomTypeResponse.jsonPath().getList("$");
         }
         Long roomTypeId = null;
@@ -182,15 +182,15 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .response();
         
         // Check if response is paginated (has 'content' field) or plain list
-        Object content = roomResponse.jsonPath().get("content");
+        Object contentRooms = roomResponse.jsonPath().get("content");
         List<Map<String, Object>> rooms = null;
-        if (content != null) {
+        if (contentRooms != null) {
             // It's a paginated response
             rooms = roomResponse.jsonPath().getList("content");
         } else {
             // It's a plain list
-            Object root = roomResponse.jsonPath().get("$");
-            if (root instanceof List) {
+            Object roomsRoot = roomResponse.jsonPath().get("$");
+            if (roomsRoot instanceof List) {
                 rooms = roomResponse.jsonPath().getList("$");
             }
         }
@@ -438,11 +438,17 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(7)
     @DisplayName("POST /api/reservations - Create reservation with invalid date range should fail")
     public void testCreateReservation_InvalidDateRange() {
-        LocalDate checkInDate = LocalDate.now().plusDays(5);
+        LocalDate checkInDate = LocalDate.now().plusDays(30);
         LocalDate checkOutDate = checkInDate.minusDays(1); // Check-out before check-in
         
-        Map<String, Object> invalidReservation = createReservationMap(guestId, roomId, rateTypeId,
-                checkOutDate, checkInDate, 2, null, null);
+        // Create map with dates in wrong order (check-out before check-in)
+        Map<String, Object> invalidReservation = new HashMap<>();
+        invalidReservation.put("guestId", guestId);
+        invalidReservation.put("roomId", roomId);
+        invalidReservation.put("rateTypeId", rateTypeId);
+        invalidReservation.put("checkInDate", checkInDate.format(DateTimeFormatter.ISO_DATE));
+        invalidReservation.put("checkOutDate", checkOutDate.format(DateTimeFormatter.ISO_DATE)); // Before check-in
+        invalidReservation.put("numberOfGuests", 2);
 
         given()
                 .spec(requestSpec)
@@ -972,8 +978,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/reservations/{id}/check-in - Check in reservation successfully")
     public void testCheckIn_Success() {
         if (createdReservationId == null) {
-            // Create a reservation for check-in test
-            LocalDate checkInDate = LocalDate.now().plusDays(1);
+            // Create a reservation for check-in test with unique dates (after testReservation1 ends)
+            LocalDate checkInDate = LocalDate.now().plusDays(13);
             LocalDate checkOutDate = checkInDate.plusDays(2);
             
             Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
@@ -1059,8 +1065,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(62)
     @DisplayName("POST /api/reservations/{id}/check-in - Check in already checked-in reservation should fail")
     public void testCheckIn_AlreadyCheckedIn() {
-        // Create and check in a reservation
-        LocalDate checkInDate = LocalDate.now().plusDays(1);
+        // Create and check in a reservation with unique dates
+        LocalDate checkInDate = LocalDate.now().plusDays(50);
         LocalDate checkOutDate = checkInDate.plusDays(2);
         
         Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
@@ -1102,8 +1108,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(70)
     @DisplayName("POST /api/reservations/{id}/check-out - Check out reservation successfully")
     public void testCheckOut_Success() {
-        // Create, confirm, and check in a reservation
-        LocalDate checkInDate = LocalDate.now().plusDays(1);
+        // Create, confirm, and check in a reservation with unique dates
+        LocalDate checkInDate = LocalDate.now().plusDays(20);
         LocalDate checkOutDate = checkInDate.plusDays(2);
         
         Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
@@ -1163,8 +1169,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(72)
     @DisplayName("POST /api/reservations/{id}/check-out - Check out reservation that is not checked in should fail")
     public void testCheckOut_NotCheckedIn() {
-        // Create a PENDING reservation
-        LocalDate checkInDate = LocalDate.now().plusDays(1);
+        // Create a PENDING reservation with unique dates
+        LocalDate checkInDate = LocalDate.now().plusDays(25);
         LocalDate checkOutDate = checkInDate.plusDays(2);
         
         Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
@@ -1198,8 +1204,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(80)
     @DisplayName("PUT /api/reservations/{id} - Update reservation successfully")
     public void testUpdateReservation_Success() {
-        // Create a reservation to update
-        LocalDate checkInDate = LocalDate.now().plusDays(5);
+        // Create a reservation to update with unique dates
+        LocalDate checkInDate = LocalDate.now().plusDays(30);
         LocalDate checkOutDate = checkInDate.plusDays(3);
         
         Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
@@ -1218,7 +1224,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         Long reservationId = createResponse.jsonPath().getLong("id");
         createdReservationIds.add(reservationId);
         
-        // Update the reservation
+        // Update the reservation with new dates
         Map<String, Object> updateData = new HashMap<>();
         updateData.put("guestId", guestId);
         updateData.put("roomId", roomId);
@@ -1270,8 +1276,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(82)
     @DisplayName("PUT /api/reservations/{id} - Update checked-out reservation should fail")
     public void testUpdateReservation_CheckedOut() {
-        // Create, check in, and check out a reservation
-        LocalDate checkInDate = LocalDate.now().plusDays(1);
+        // Create, check in, and check out a reservation with unique dates
+        LocalDate checkInDate = LocalDate.now().plusDays(35);
         LocalDate checkOutDate = checkInDate.plusDays(2);
         
         Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
@@ -1330,8 +1336,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(90)
     @DisplayName("POST /api/reservations/{id}/cancel - Cancel reservation successfully")
     public void testCancelReservation_Success() {
-        // Create a reservation to cancel
-        LocalDate checkInDate = LocalDate.now().plusDays(5);
+        // Create a reservation to cancel with unique dates
+        LocalDate checkInDate = LocalDate.now().plusDays(40);
         LocalDate checkOutDate = checkInDate.plusDays(3);
         
         Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
@@ -1382,8 +1388,8 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Order(92)
     @DisplayName("POST /api/reservations/{id}/cancel - Cancel checked-out reservation should fail")
     public void testCancelReservation_CheckedOut() {
-        // Create, check in, and check out a reservation
-        LocalDate checkInDate = LocalDate.now().plusDays(1);
+        // Create, check in, and check out a reservation with unique dates
+        LocalDate checkInDate = LocalDate.now().plusDays(45);
         LocalDate checkOutDate = checkInDate.plusDays(2);
         
         Map<String, Object> reservation = createReservationMap(guestId, roomId, rateTypeId,
