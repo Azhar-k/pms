@@ -79,7 +79,8 @@ timeout=180
 elapsed=0
 max_attempts=$((timeout / 3))
 attempt=0
-while ! curl -f -s http://localhost:8081/api/guests > /dev/null 2>&1; do
+# Use health check endpoint which doesn't require authentication
+while ! curl -f -s http://localhost:8081/health > /dev/null 2>&1; do
     attempt=$((attempt + 1))
     if [ $elapsed -ge $timeout ]; then
         echo -e "\n${RED}Application failed to start within ${timeout} seconds${NC}"

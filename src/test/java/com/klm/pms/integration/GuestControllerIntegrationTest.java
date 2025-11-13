@@ -83,6 +83,51 @@ public class GuestControllerIntegrationTest extends TestConfig {
         return guest;
     }
 
+    // ==================== AUTHENTICATION TESTS ====================
+
+    @Test
+    @Order(0)
+    @DisplayName("POST /api/guests - Request without token should return 401")
+    public void testCreateGuest_Unauthorized_NoToken() {
+        given()
+                .spec(authenticatedRequestSpec)  // No authentication header
+                .body(testGuest1)
+                .when()
+                .post("/guests")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @Order(0)
+    @DisplayName("POST /api/guests - Request with expired token should return 401")
+    public void testCreateGuest_Unauthorized_ExpiredToken() {
+        String expiredToken = getExpiredToken(DEFAULT_TEST_USER);
+        given()
+                .spec(requestSpec)
+                .header("Authorization", "Bearer " + expiredToken)
+                .body(testGuest1)
+                .when()
+                .post("/guests")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @Order(0)
+    @DisplayName("POST /api/guests - Request with invalid token should return 401")
+    public void testCreateGuest_Unauthorized_InvalidToken() {
+        String invalidToken = getInvalidToken(DEFAULT_TEST_USER);
+        given()
+                .spec(requestSpec)
+                .header("Authorization", "Bearer " + invalidToken)
+                .body(testGuest1)
+                .when()
+                .post("/guests")
+                .then()
+                .statusCode(401);
+    }
+
     // ==================== CREATE OPERATIONS ====================
 
     @Test
@@ -90,7 +135,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/guests - Create a new guest successfully")
     public void testCreateGuest_Success() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testGuest1)
                 .when()
                 .post("/guests")
@@ -121,7 +166,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     public void testCreateAdditionalGuests() {
         // Create second guest
         Response response2 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testGuest2)
                 .when()
                 .post("/guests")
@@ -137,7 +182,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
 
         // Create third guest
         Response response3 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testGuest3)
                 .when()
                 .post("/guests")
@@ -164,7 +209,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
             duplicateGuest.put("email", createdGuestEmail); // Use the created guest's email
 
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(duplicateGuest)
                     .when()
                     .post("/guests")
@@ -184,7 +229,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         invalidGuest.put("email", "invalid-email");
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidGuest)
                 .when()
                 .post("/guests")
@@ -201,7 +246,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         // Missing firstName and lastName
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidGuest)
                 .when()
                 .post("/guests")
@@ -217,7 +262,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     public void testGetGuestById_Success() {
         if (createdGuestId != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/guests/{id}", createdGuestId)
                     .then()
@@ -230,7 +275,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         } else {
             // If guest creation failed, try to get any existing guest
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -244,7 +289,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
             if (!guests.isEmpty()) {
                 Long guestId = ((Number) guests.get(0).get("id")).longValue();
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/guests/{id}", guestId)
                         .then()
@@ -262,7 +307,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests/{id} - Get non-existent guest should return 400")
     public void testGetGuestById_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/guests/{id}", 99999L)
                 .then()
@@ -275,7 +320,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     public void testGetGuestByEmail_Success() {
         if (createdGuestEmail != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/guests/email/{email}", createdGuestEmail)
                     .then()
@@ -286,7 +331,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         } else {
             // If no guest was created, try with any existing guest email
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -300,7 +345,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
             if (!guests.isEmpty() && guests.get(0).get("email") != null) {
                 String email = (String) guests.get(0).get("email");
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/guests/email/{email}", email)
                         .then()
@@ -322,7 +367,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         // But based on the actual response, it seems to always return PageResponse now.
         // Let's check both cases.
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/guests")
                 .then()
@@ -352,7 +397,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test pagination with page and size")
     public void testGetAllGuests_WithPagination() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 2)
                 .when()
@@ -382,7 +427,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test pagination second page")
     public void testGetAllGuests_SecondPage() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 1)
                 .queryParam("size", 2)
                 .when()
@@ -405,7 +450,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test pagination with default values")
     public void testGetAllGuests_DefaultPagination() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .when()
@@ -429,7 +474,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test sorting by lastName ascending")
     public void testGetAllGuests_SortByLastNameAsc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "lastName")
@@ -456,7 +501,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test sorting by lastName descending")
     public void testGetAllGuests_SortByLastNameDesc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "lastName")
@@ -483,7 +528,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test sorting by firstName")
     public void testGetAllGuests_SortByFirstName() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "firstName")
@@ -505,7 +550,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test sorting by email")
     public void testGetAllGuests_SortByEmail() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "email")
@@ -529,7 +574,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test filtering by firstName")
     public void testGetAllGuests_FilterByFirstName() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("firstName", "John")
@@ -555,7 +600,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test filtering by lastName")
     public void testGetAllGuests_FilterByLastName() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("lastName", "Doe")
@@ -581,7 +626,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test filtering by email")
     public void testGetAllGuests_FilterByEmail() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("email", "john.doe")
@@ -607,7 +652,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test filtering by city")
     public void testGetAllGuests_FilterByCity() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("city", "New York")
@@ -639,7 +684,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test filtering by country")
     public void testGetAllGuests_FilterByCountry() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("country", "USA")
@@ -665,7 +710,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test filtering by identificationType")
     public void testGetAllGuests_FilterByIdentificationType() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("identificationType", "PASSPORT")
@@ -693,7 +738,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test search term functionality")
     public void testGetAllGuests_SearchTerm() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("searchTerm", "john")
@@ -732,7 +777,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/guests - Test combined filtering, pagination, and sorting")
     public void testGetAllGuests_CombinedFilters() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 5)
                 .queryParam("sortBy", "lastName")
@@ -777,7 +822,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
             updateData.put("state", "MA");
 
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(updateData)
                     .when()
                     .put("/guests/{id}", createdGuestId)
@@ -797,7 +842,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         } else {
             // Get an existing guest to update
             Response listResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -818,7 +863,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                 updateData.put("email", email);
                 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/guests/{id}", guestId)
@@ -842,7 +887,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         updateData.put("email", "test@example.com");
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(updateData)
                 .when()
                 .put("/guests/{id}", 99999L)
@@ -861,7 +906,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         
         // First, get another guest's email
         Response allGuestsResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .when()
@@ -889,7 +934,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                 updateData.put("email", otherGuestEmail);
 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/guests/{id}", createdGuestId)
@@ -910,7 +955,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         String uniqueEmail = "delete.me.test" + timestamp + "@example.com";
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(createGuestMap("Delete", "Me", uniqueEmail, 
                         "+1111111111", "Test St", "Test City", "TS", "USA", "12345", 
                         "ID_CARD", "DEL123" + timestamp))
@@ -925,7 +970,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
 
         // Delete the guest
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/guests/{id}", guestIdToDelete)
                 .then()
@@ -936,7 +981,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
 
         // Verify guest is deleted
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/guests/{id}", guestIdToDelete)
                 .then()
@@ -948,7 +993,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("DELETE /api/guests/{id} - Delete non-existent guest should fail")
     public void testDeleteGuest_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/guests/{id}", 99999L)
                 .then()
@@ -966,7 +1011,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
         for (Long guestId : createdGuestIds) {
             try {
                 Response response = given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .delete("/guests/{id}", guestId)
                         .then()

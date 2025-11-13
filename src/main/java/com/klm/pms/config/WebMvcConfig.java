@@ -25,8 +25,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api-docs/**",
                         "/v3/api-docs/**",
                         "/swagger-ui.html",
-                        "/webjars/**"
-                );  // Exclude Swagger/OpenAPI endpoints
+                        "/webjars/**",
+                        "/health/**"  // Exclude health check endpoint
+                );  // Exclude Swagger/OpenAPI endpoints and health checks
     }
 }
 

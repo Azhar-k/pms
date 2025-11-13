@@ -1,5 +1,6 @@
 package com.klm.pms.config;
 
+import com.klm.pms.util.TestJwtTokenGenerator;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.http.ContentType;
@@ -18,6 +19,8 @@ import org.slf4j.LoggerFactory;
  * Configuration can be overridden via environment variables:
  * - TEST_API_PORT (default: 8081)
  * - TEST_API_HOST (default: localhost)
+ * 
+ * Includes JWT token generation for authenticated requests.
  */
 public class TestConfig {
 
@@ -33,7 +36,14 @@ public class TestConfig {
     protected static final String BASE_URL = "http://" + API_HOST + ":" + API_PORT;
     protected static final String API_BASE_PATH = "/api";
     
+    // Default test user for generating tokens
+    protected static final String DEFAULT_TEST_USER = "test_user";
+    
+    // Generated test token (valid for 1 hour)
+    protected static String testToken;
+    
     protected static RequestSpecification requestSpec;
+    protected static RequestSpecification authenticatedRequestSpec;
 
     @BeforeAll
     public static void setup() {
@@ -49,13 +59,63 @@ public class TestConfig {
         // Enable logging for debugging (can be disabled in production tests)
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
         
-        // Create default request specification
+        // Generate test JWT token
+        testToken = TestJwtTokenGenerator.generateToken(DEFAULT_TEST_USER);
+        logger.info("Generated test JWT token for user: {}", DEFAULT_TEST_USER);
+        
+        // Create default request specification (without authentication)
         requestSpec = new RequestSpecBuilder()
                 .setContentType(ContentType.JSON)
                 .setAccept(ContentType.JSON)
                 .build();
         
+        // Create authenticated request specification (with JWT token)
+        authenticatedRequestSpec = new RequestSpecBuilder()
+                .setContentType(ContentType.JSON)
+                .setAccept(ContentType.JSON)
+                .addHeader("Authorization", "Bearer " + testToken)
+                .build();
+        
         logger.info("REST Assured configuration completed");
+    }
+    
+    /**
+     * Get a valid test token for a specific user.
+     * 
+     * @param username The username to generate a token for
+     * @return A valid JWT token string
+     */
+    protected static String getTestToken(String username) {
+        return TestJwtTokenGenerator.generateToken(username);
+    }
+    
+    /**
+     * Get the default test token.
+     * 
+     * @return The default test token
+     */
+    protected static String getTestToken() {
+        return testToken;
+    }
+    
+    /**
+     * Get an expired test token for testing expiration scenarios.
+     * 
+     * @param username The username to generate an expired token for
+     * @return An expired JWT token string
+     */
+    protected static String getExpiredToken(String username) {
+        return TestJwtTokenGenerator.generateExpiredToken(username);
+    }
+    
+    /**
+     * Get an invalid test token for testing invalid token scenarios.
+     * 
+     * @param username The username to generate an invalid token for
+     * @return An invalid JWT token string
+     */
+    protected static String getInvalidToken(String username) {
+        return TestJwtTokenGenerator.generateInvalidToken(username);
     }
 }
 

@@ -76,7 +76,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     private static void setupRequiredEntities() {
         // Get or create a guest
         Response guestResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/guests")
                 .then()
@@ -117,7 +117,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             guest.put("identificationNumber", "PASS" + timestamp);
             
             Response createGuestResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(guest)
                     .when()
                     .post("/guests")
@@ -131,7 +131,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Get or create a room type
         Response roomTypeResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types")
                 .then()
@@ -157,7 +157,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             roomType.put("maxOccupancy", 4);
             
             Response createRoomTypeResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(roomType)
                     .when()
                     .post("/room-types")
@@ -171,7 +171,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Get or create a room
         Response roomResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .when()
@@ -208,7 +208,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             room.put("floor", 1);
             
             Response createRoomResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(room)
                     .when()
                     .post("/rooms")
@@ -222,7 +222,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Get or create a rate type
         Response rateTypeResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types")
                 .then()
@@ -241,7 +241,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             
             // Ensure rate type has a rate for the room type
             Response rateTypeDetailResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rate-types/{id}", rateTypeId)
                     .then()
@@ -268,7 +268,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 roomTypeRate.put("rate", new BigDecimal("120.00"));
                 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(roomTypeRate)
                         .when()
                         .post("/rate-types/{rateTypeId}/room-type-rates", rateTypeId)
@@ -289,7 +289,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             rateType.put("roomTypeRates", roomTypeRates);
             
             Response createRateTypeResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(rateType)
                     .when()
                     .post("/rate-types")
@@ -325,7 +325,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @Disabled("Temporarily disabled - test is failing")
     public void testCreateReservation_Success() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testReservation1)
                 .when()
                 .post("/reservations")
@@ -355,7 +355,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     public void testCreateAdditionalReservation() {
         // Create second reservation with different dates
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testReservation2)
                 .when()
                 .post("/reservations")
@@ -379,7 +379,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         // Missing guestId, roomId, rateTypeId, checkInDate, checkOutDate
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidReservation)
                 .when()
                 .post("/reservations")
@@ -395,7 +395,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         invalidReservation.put("guestId", 99999L); // Non-existent guest
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidReservation)
                 .when()
                 .post("/reservations")
@@ -411,7 +411,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         invalidReservation.put("roomId", 99999L); // Non-existent room
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidReservation)
                 .when()
                 .post("/reservations")
@@ -427,7 +427,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         invalidReservation.put("rateTypeId", 99999L); // Non-existent rate type
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidReservation)
                 .when()
                 .post("/reservations")
@@ -452,7 +452,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         invalidReservation.put("numberOfGuests", 2);
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidReservation)
                 .when()
                 .post("/reservations")
@@ -471,7 +471,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 pastDate, futureDate, 2, null, null);
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidReservation)
                 .when()
                 .post("/reservations")
@@ -487,7 +487,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         invalidReservation.put("numberOfGuests", 0); // Invalid: must be positive
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidReservation)
                 .when()
                 .post("/reservations")
@@ -503,7 +503,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     public void testGetReservationById_Success() {
         if (createdReservationId != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/reservations/{id}", createdReservationId)
                     .then()
@@ -515,7 +515,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         } else {
             // If reservation creation failed, try to get any existing reservation
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -533,7 +533,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             if (reservations != null && !reservations.isEmpty()) {
                 Long reservationId = ((Number) reservations.get(0).get("id")).longValue();
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/reservations/{id}", reservationId)
                         .then()
@@ -551,7 +551,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations/{id} - Get non-existent reservation should return 400")
     public void testGetReservationById_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/reservations/{id}", 99999L)
                 .then()
@@ -564,7 +564,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     public void testGetReservationByNumber_Success() {
         if (createdReservationNumber != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/reservations/number/{reservationNumber}", createdReservationNumber)
                     .then()
@@ -575,7 +575,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         } else {
             // If no reservation was created, try with any existing reservation number
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -593,7 +593,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             if (reservations != null && !reservations.isEmpty() && reservations.get(0).get("reservationNumber") != null) {
                 String reservationNumber = (String) reservations.get(0).get("reservationNumber");
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/reservations/number/{reservationNumber}", reservationNumber)
                         .then()
@@ -611,7 +611,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations/number/{reservationNumber} - Get non-existent reservation number should return 400")
     public void testGetReservationByNumber_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/reservations/number/{reservationNumber}", "NON_EXISTENT_99999")
                 .then()
@@ -623,7 +623,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations - Get all reservations (non-paginated)")
     public void testGetAllReservations_NonPaginated() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/reservations")
                 .then()
@@ -652,7 +652,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations - Test pagination with page and size")
     public void testGetAllReservations_WithPagination() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 2)
                 .when()
@@ -677,7 +677,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations - Test sorting by checkInDate")
     public void testGetAllReservations_SortByCheckInDate() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "checkInDate")
@@ -699,7 +699,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations - Test sorting by createdAt descending")
     public void testGetAllReservations_SortByCreatedAtDesc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "createdAt")
@@ -724,7 +724,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     public void testGetAllReservations_FilterByGuestId() {
         if (guestId != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("guestId", guestId)
@@ -752,7 +752,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     public void testGetAllReservations_FilterByRoomId() {
         if (roomId != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("roomId", roomId)
@@ -779,7 +779,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations - Test filtering by status PENDING")
     public void testGetAllReservations_FilterByStatusPending() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("status", "PENDING")
@@ -808,7 +808,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         LocalDate toDate = LocalDate.now().plusDays(20);
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("checkInDateFrom", fromDate.format(DateTimeFormatter.ISO_DATE))
@@ -830,7 +830,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations - Test filtering by numberOfGuests range")
     public void testGetAllReservations_FilterByNumberOfGuests() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("minNumberOfGuests", 1)
@@ -860,7 +860,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations - Test filtering by paymentStatus")
     public void testGetAllReservations_FilterByPaymentStatus() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("paymentStatus", "PENDING")
@@ -882,7 +882,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     public void testGetAllReservations_SearchTerm() {
         if (createdReservationNumber != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("searchTerm", createdReservationNumber.substring(0, 5))
@@ -907,7 +907,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     public void testGetReservationsByGuest_Success() {
         if (guestId != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/reservations/guest/{guestId}", guestId)
                     .then()
@@ -931,7 +931,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/reservations/status/{status} - Get reservations by status successfully")
     public void testGetReservationsByStatus_Success() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/reservations/status/{status}", "PENDING")
                 .then()
@@ -957,7 +957,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         LocalDate endDate = LocalDate.now().plusDays(25);
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("startDate", startDate.format(DateTimeFormatter.ISO_DATE))
                 .queryParam("endDate", endDate.format(DateTimeFormatter.ISO_DATE))
                 .when()
@@ -987,7 +987,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                     checkInDate, checkOutDate, 2, null, "CONFIRMED");
             
             Response createResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(reservation)
                     .when()
                     .post("/reservations")
@@ -1001,7 +1001,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             
             // Check in
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .post("/reservations/{id}/check-in", reservationId)
                     .then()
@@ -1026,7 +1026,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             updateData.put("status", "CONFIRMED");
             
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(updateData)
                     .when()
                     .put("/reservations/{id}", createdReservationId)
@@ -1035,7 +1035,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             
             // Check in
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .post("/reservations/{id}/check-in", createdReservationId)
                     .then()
@@ -1055,7 +1055,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/reservations/{id}/check-in - Check in non-existent reservation should fail")
     public void testCheckIn_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-in", 99999L)
                 .then()
@@ -1075,7 +1075,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 checkInDate, checkOutDate, 2, null, "CONFIRMED");
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -1089,7 +1089,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // First check-in (should succeed)
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-in", reservationId)
                 .then()
@@ -1097,7 +1097,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Second check-in (should fail)
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-in", reservationId)
                 .then()
@@ -1118,7 +1118,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 checkInDate, checkOutDate, 2, null, "CONFIRMED");
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -1132,7 +1132,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Check in first
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-in", reservationId)
                 .then()
@@ -1140,7 +1140,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Check out
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-out", reservationId)
                 .then()
@@ -1160,7 +1160,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/reservations/{id}/check-out - Check out non-existent reservation should fail")
     public void testCheckOut_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-out", 99999L)
                 .then()
@@ -1180,7 +1180,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 checkInDate, checkOutDate, 2, null, "PENDING");
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -1194,7 +1194,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Try to check out without checking in (should fail)
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-out", reservationId)
                 .then()
@@ -1216,7 +1216,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 checkInDate, checkOutDate, 2, "Original request", "PENDING");
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -1239,7 +1239,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         updateData.put("specialRequests", "Updated request");
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(updateData)
                 .when()
                 .put("/reservations/{id}", reservationId)
@@ -1268,7 +1268,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         updateData.put("numberOfGuests", 2);
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(updateData)
                 .when()
                 .put("/reservations/{id}", 99999L)
@@ -1289,7 +1289,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 checkInDate, checkOutDate, 2, null, "CONFIRMED");
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -1303,7 +1303,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Check in
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-in", reservationId)
                 .then()
@@ -1311,7 +1311,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Check out
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-out", reservationId)
                 .then()
@@ -1327,7 +1327,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         updateData.put("numberOfGuests", 3);
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(updateData)
                 .when()
                 .put("/reservations/{id}", reservationId)
@@ -1350,7 +1350,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 checkInDate, checkOutDate, 2, null, "PENDING");
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -1364,7 +1364,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Cancel the reservation
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/cancel", reservationId)
                 .then()
@@ -1383,7 +1383,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/reservations/{id}/cancel - Cancel non-existent reservation should fail")
     public void testCancelReservation_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/cancel", 99999L)
                 .then()
@@ -1403,7 +1403,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 checkInDate, checkOutDate, 2, null, "CONFIRMED");
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -1417,7 +1417,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Check in
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-in", reservationId)
                 .then()
@@ -1425,7 +1425,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Check out
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/check-out", reservationId)
                 .then()
@@ -1433,7 +1433,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
         
         // Try to cancel (should fail)
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/reservations/{id}/cancel", reservationId)
                 .then()
@@ -1452,7 +1452,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
             try {
                 // Try to cancel the reservation
                 Response response = given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .post("/reservations/{id}/cancel", reservationId)
                         .then()

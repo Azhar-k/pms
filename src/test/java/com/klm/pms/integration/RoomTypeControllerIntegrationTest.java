@@ -92,7 +92,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/room-types - Create a new room type successfully")
     public void testCreateRoomType_Success() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRoomType1)
                 .when()
                 .post("/room-types")
@@ -123,7 +123,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
     public void testCreateAdditionalRoomTypes() {
         // Create second room type
         Response response2 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRoomType2)
                 .when()
                 .post("/room-types")
@@ -139,7 +139,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
 
         // Create third room type
         Response response3 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRoomType3)
                 .when()
                 .post("/room-types")
@@ -165,7 +165,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
             duplicateRoomType.put("description", "Different description");
 
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(duplicateRoomType)
                     .when()
                     .post("/room-types")
@@ -186,7 +186,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         // Missing name, basePricePerNight, and maxOccupancy
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidRoomType)
                 .when()
                 .post("/room-types")
@@ -203,7 +203,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         invalidRoomType.put("basePricePerNight", -100.00); // Negative price
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidRoomType)
                 .when()
                 .post("/room-types")
@@ -220,7 +220,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         invalidRoomType.put("maxOccupancy", 0); // Invalid occupancy
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidRoomType)
                 .when()
                 .post("/room-types")
@@ -236,7 +236,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
     public void testGetRoomTypeById_Success() {
         if (createdRoomTypeId != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/room-types/{id}", createdRoomTypeId)
                     .then()
@@ -248,7 +248,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         } else {
             // If room type creation failed, try to get any existing room type
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/room-types")
                     .then()
@@ -260,7 +260,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
             if (!roomTypes.isEmpty()) {
                 Long roomTypeId = ((Number) roomTypes.get(0).get("id")).longValue();
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/room-types/{id}", roomTypeId)
                         .then()
@@ -278,7 +278,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/room-types/{id} - Get non-existent room type should return 400")
     public void testGetRoomTypeById_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types/{id}", 99999L)
                 .then()
@@ -291,7 +291,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
     public void testGetRoomTypeByName_Success() {
         if (createdRoomTypeName != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/room-types/name/{name}", createdRoomTypeName)
                     .then()
@@ -302,7 +302,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         } else {
             // If no room type was created, try with any existing room type name
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/room-types")
                     .then()
@@ -314,7 +314,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
             if (!roomTypes.isEmpty() && roomTypes.get(0).get("name") != null) {
                 String name = (String) roomTypes.get(0).get("name");
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/room-types/name/{name}", name)
                         .then()
@@ -332,7 +332,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/room-types - Get all room types")
     public void testGetAllRoomTypes() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types")
                 .then()
@@ -360,7 +360,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
             updateData.put("amenities", "WiFi, TV, Updated Amenities");
 
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(updateData)
                     .when()
                     .put("/room-types/{id}", createdRoomTypeId)
@@ -378,7 +378,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         } else {
             // Get an existing room type to update
             Response listResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/room-types")
                     .then()
@@ -398,7 +398,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
                 updateData.put("maxOccupancy", 3);
                 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/room-types/{id}", roomTypeId)
@@ -423,7 +423,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         updateData.put("maxOccupancy", 2);
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(updateData)
                 .when()
                 .put("/room-types/{id}", 99999L)
@@ -442,7 +442,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         
         // First, get another room type's name
         Response allRoomTypesResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types")
                 .then()
@@ -469,7 +469,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
                 updateData.put("maxOccupancy", 2);
 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/room-types/{id}", createdRoomTypeId)
@@ -490,7 +490,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         String uniqueName = "DELETE_ME_TEST_" + timestamp;
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(createRoomTypeMap(uniqueName, "To be deleted", 
                         new BigDecimal("50.00"), 1, "Basic", 20, false, false, false, false, false, "SINGLE"))
                 .when()
@@ -504,7 +504,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
 
         // Delete the room type
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/room-types/{id}", roomTypeIdToDelete)
                 .then()
@@ -515,7 +515,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
 
         // Verify room type is deleted
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types/{id}", roomTypeIdToDelete)
                 .then()
@@ -527,7 +527,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("DELETE /api/room-types/{id} - Delete non-existent room type should fail")
     public void testDeleteRoomType_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/room-types/{id}", 99999L)
                 .then()
@@ -545,7 +545,7 @@ public class RoomTypeControllerIntegrationTest extends TestConfig {
         for (Long roomTypeId : createdRoomTypeIds) {
             try {
                 Response response = given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .delete("/room-types/{id}", roomTypeId)
                         .then()

@@ -69,7 +69,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     private static void setupRequiredEntities() {
         // Get or create a guest
         Response guestResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/guests")
                 .then()
@@ -110,7 +110,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             guest.put("identificationNumber", "PASS" + timestamp);
             
             Response createGuestResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(guest)
                     .when()
                     .post("/guests")
@@ -124,7 +124,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Get or create a room type
         Response roomTypeResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types")
                 .then()
@@ -149,7 +149,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             roomType.put("maxOccupancy", 4);
             
             Response createRoomTypeResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(roomType)
                     .when()
                     .post("/room-types")
@@ -163,7 +163,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Get or create a room
         Response roomResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .when()
@@ -200,7 +200,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             room.put("floor", 1);
             
             Response createRoomResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(room)
                     .when()
                     .post("/rooms")
@@ -214,7 +214,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Get or create a rate type
         Response rateTypeResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types")
                 .then()
@@ -233,7 +233,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             
             // Ensure rate type has a rate for the room type
             Response rateTypeDetailResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rate-types/{id}", rateTypeId)
                     .then()
@@ -260,7 +260,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
                 roomTypeRate.put("rate", new BigDecimal("120.00"));
                 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(roomTypeRate)
                         .when()
                         .post("/rate-types/{rateTypeId}/room-type-rates", rateTypeId)
@@ -281,7 +281,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             rateType.put("roomTypeRates", roomTypeRates);
             
             Response createRateTypeResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(rateType)
                     .when()
                     .post("/rate-types")
@@ -309,7 +309,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         reservation.put("status", "PENDING");
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -342,7 +342,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         reservation.put("status", "PENDING");
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(reservation)
                 .when()
                 .post("/reservations")
@@ -368,7 +368,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         }
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", reservationId)
                 .then()
@@ -404,7 +404,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/invoices/generate/{reservationId} - Generate invoice for non-existent reservation should fail")
     public void testGenerateInvoice_InvalidReservation() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", 99999L)
                 .then()
@@ -421,7 +421,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Try to generate another invoice for the same reservation
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", reservationId)
                 .then()
@@ -436,7 +436,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         Long reservationId2 = createAdditionalReservation();
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", reservationId2)
                 .then()
@@ -458,7 +458,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     public void testGetInvoiceById_Success() {
         if (createdInvoiceId != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/invoices/{id}", createdInvoiceId)
                     .then()
@@ -470,7 +470,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         } else {
             // If invoice creation failed, try to get any existing invoice
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -488,7 +488,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             if (invoices != null && !invoices.isEmpty()) {
                 Long invoiceId = ((Number) invoices.get(0).get("id")).longValue();
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/invoices/{id}", invoiceId)
                         .then()
@@ -506,7 +506,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices/{id} - Get non-existent invoice should return 400")
     public void testGetInvoiceById_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/invoices/{id}", 99999L)
                 .then()
@@ -519,7 +519,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     public void testGetInvoiceByNumber_Success() {
         if (createdInvoiceNumber != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/invoices/number/{invoiceNumber}", createdInvoiceNumber)
                     .then()
@@ -530,7 +530,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         } else {
             // If no invoice was created, try with any existing invoice number
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -548,7 +548,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             if (invoices != null && !invoices.isEmpty() && invoices.get(0).get("invoiceNumber") != null) {
                 String invoiceNumber = (String) invoices.get(0).get("invoiceNumber");
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/invoices/number/{invoiceNumber}", invoiceNumber)
                         .then()
@@ -566,7 +566,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices/number/{invoiceNumber} - Get non-existent invoice number should return 400")
     public void testGetInvoiceByNumber_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/invoices/number/{invoiceNumber}", "NON_EXISTENT_99999")
                 .then()
@@ -578,7 +578,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Get all invoices (non-paginated)")
     public void testGetAllInvoices_NonPaginated() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/invoices")
                 .then()
@@ -606,7 +606,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     public void testGetInvoicesByReservation_Success() {
         if (reservationId != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/invoices/reservation/{reservationId}", reservationId)
                     .then()
@@ -631,7 +631,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices/status/{status} - Get invoices by status PENDING")
     public void testGetInvoicesByStatus_Pending() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/invoices/status/{status}", InvoiceStatus.PENDING.name())
                 .then()
@@ -654,7 +654,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices/status/{status} - Get invoices by status PAID")
     public void testGetInvoicesByStatus_Paid() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/invoices/status/{status}", InvoiceStatus.PAID.name())
                 .then()
@@ -679,7 +679,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test pagination with page and size")
     public void testGetAllInvoices_WithPagination() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 2)
                 .when()
@@ -709,7 +709,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test pagination second page")
     public void testGetAllInvoices_SecondPage() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 1)
                 .queryParam("size", 2)
                 .when()
@@ -734,7 +734,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test sorting by issuedDate ascending")
     public void testGetAllInvoices_SortByIssuedDateAsc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "issuedDate")
@@ -756,7 +756,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test sorting by issuedDate descending")
     public void testGetAllInvoices_SortByIssuedDateDesc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "issuedDate")
@@ -778,7 +778,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test sorting by totalAmount ascending")
     public void testGetAllInvoices_SortByTotalAmountAsc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "totalAmount")
@@ -805,7 +805,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test sorting by totalAmount descending")
     public void testGetAllInvoices_SortByTotalAmountDesc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "totalAmount")
@@ -832,7 +832,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test sorting by status")
     public void testGetAllInvoices_SortByStatus() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "status")
@@ -857,7 +857,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     public void testGetAllInvoices_FilterByInvoiceNumber() {
         if (createdInvoiceNumber != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("invoiceNumber", createdInvoiceNumber)
@@ -885,7 +885,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     public void testGetAllInvoices_FilterByReservationId() {
         if (reservationId != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("reservationId", reservationId)
@@ -911,7 +911,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test filtering by status PENDING")
     public void testGetAllInvoices_FilterByStatusPending() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("status", "PENDING")
@@ -937,7 +937,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test filtering by status PAID")
     public void testGetAllInvoices_FilterByStatusPaid() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("status", "PAID")
@@ -966,7 +966,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         LocalDateTime toDate = LocalDateTime.now().plusDays(1);
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("issuedDateFrom", fromDate.format(DateTimeFormatter.ISO_DATE_TIME))
@@ -988,7 +988,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test filtering by paymentMethod")
     public void testGetAllInvoices_FilterByPaymentMethod() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("paymentMethod", "CREDIT_CARD")
@@ -1016,7 +1016,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     public void testGetAllInvoices_SearchTerm() {
         if (createdInvoiceNumber != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("searchTerm", createdInvoiceNumber.substring(0, 3))
@@ -1038,7 +1038,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/invoices - Test combined filtering, pagination, and sorting")
     public void testGetAllInvoices_CombinedFilters() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 5)
                 .queryParam("sortBy", "issuedDate")
@@ -1082,7 +1082,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         item.put("category", "SERVICE");
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(item)
                 .when()
                 .post("/invoices/{invoiceId}/items", createdInvoiceId)
@@ -1113,7 +1113,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         item.put("amount", new BigDecimal("10.00"));
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(item)
                 .when()
                 .post("/invoices/{invoiceId}/items", 99999L)
@@ -1131,7 +1131,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // First mark the invoice as paid
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "CASH")
                 .when()
                 .post("/invoices/{invoiceId}/pay", createdInvoiceId)
@@ -1146,7 +1146,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         item.put("amount", new BigDecimal("10.00"));
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(item)
                 .when()
                 .post("/invoices/{invoiceId}/items", createdInvoiceId)
@@ -1161,7 +1161,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         // Create a new invoice for this test to ensure we have a clean state
         Long testReservationId = createAdditionalReservation();
         Response invoiceResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", testReservationId)
                 .then()
@@ -1181,7 +1181,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         item.put("category", "SERVICE");
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(item)
                 .when()
                 .post("/invoices/{invoiceId}/items", testInvoiceId)
@@ -1190,7 +1190,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Get the invoice to find the added item ID
         Response getInvoiceResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/invoices/{id}", testInvoiceId)
                 .then()
@@ -1215,7 +1215,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Remove the item
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/invoices/{invoiceId}/items/{itemId}", testInvoiceId, itemIdToRemove)
                 .then()
@@ -1235,7 +1235,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("DELETE /api/invoices/{invoiceId}/items/{itemId} - Remove item from non-existent invoice should fail")
     public void testRemoveInvoiceItem_InvoiceNotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/invoices/{invoiceId}/items/{itemId}", 99999L, 1L)
                 .then()
@@ -1249,7 +1249,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         // Create a new invoice for this test
         Long testReservationId = createAdditionalReservation();
         Response invoiceResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", testReservationId)
                 .then()
@@ -1262,7 +1262,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Mark invoice as paid
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "CASH")
                 .when()
                 .post("/invoices/{invoiceId}/pay", testInvoiceId)
@@ -1271,7 +1271,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Get an item ID
         Response getInvoiceResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/invoices/{id}", testInvoiceId)
                 .then()
@@ -1285,7 +1285,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
             
             // Try to remove item from paid invoice
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .delete("/invoices/{invoiceId}/items/{itemId}", testInvoiceId, itemId)
                     .then()
@@ -1302,7 +1302,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         // Create a new invoice for payment test
         Long testReservationId = createAdditionalReservation();
         Response invoiceResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", testReservationId)
                 .then()
@@ -1315,7 +1315,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Mark invoice as paid
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "CREDIT_CARD")
                 .when()
                 .post("/invoices/{invoiceId}/pay", testInvoiceId)
@@ -1341,7 +1341,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/invoices/{invoiceId}/pay - Mark non-existent invoice as paid should fail")
     public void testMarkInvoiceAsPaid_InvoiceNotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "CASH")
                 .when()
                 .post("/invoices/{invoiceId}/pay", 99999L)
@@ -1356,7 +1356,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         // Create a new invoice for this test
         Long testReservationId = createAdditionalReservation();
         Response invoiceResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", testReservationId)
                 .then()
@@ -1369,7 +1369,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Mark invoice as paid first time
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "CASH")
                 .when()
                 .post("/invoices/{invoiceId}/pay", testInvoiceId)
@@ -1378,7 +1378,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         
         // Try to mark as paid again
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "CREDIT_CARD")
                 .when()
                 .post("/invoices/{invoiceId}/pay", testInvoiceId)
@@ -1393,7 +1393,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         // Test with CASH
         Long testReservationId1 = createAdditionalReservation();
         Response invoiceResponse1 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", testReservationId1)
                 .then()
@@ -1405,7 +1405,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         createdInvoiceIds.add(testInvoiceId1);
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "CASH")
                 .when()
                 .post("/invoices/{invoiceId}/pay", testInvoiceId1)
@@ -1416,7 +1416,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         // Test with BANK_TRANSFER
         Long testReservationId2 = createAdditionalReservation();
         Response invoiceResponse2 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .post("/invoices/generate/{reservationId}", testReservationId2)
                 .then()
@@ -1428,7 +1428,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
         createdInvoiceIds.add(testInvoiceId2);
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("paymentMethod", "BANK_TRANSFER")
                 .when()
                 .post("/invoices/{invoiceId}/pay", testInvoiceId2)

@@ -85,7 +85,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
     /**
      * Check if the request path is public (doesn't require authentication).
-     * Excludes Swagger/OpenAPI endpoints and static resources.
+     * Excludes Swagger/OpenAPI endpoints, health checks, and static resources.
      */
     private boolean isPublicPath(String path) {
         return path.startsWith("/swagger-ui") ||
@@ -94,6 +94,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
                path.startsWith("/swagger-ui.html") ||
                path.startsWith("/webjars") ||
                path.startsWith("/favicon.ico") ||
+               path.startsWith("/health") ||
                path.equals("/");
     }
 }

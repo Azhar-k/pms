@@ -75,7 +75,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     private static void setupRoomType() {
         // Try to get existing room type
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types")
                 .then()
@@ -99,7 +99,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
             roomType.put("maxOccupancy", 2);
             
             Response createResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(roomType)
                     .when()
                     .post("/room-types")
@@ -135,7 +135,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/rooms - Create a new room successfully")
     public void testCreateRoom_Success() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRoom1)
                 .when()
                 .post("/rooms")
@@ -165,7 +165,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     public void testCreateAdditionalRooms() {
         // Create second room
         Response response2 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRoom2)
                 .when()
                 .post("/rooms")
@@ -181,7 +181,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
 
         // Create third room
         Response response3 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRoom3)
                 .when()
                 .post("/rooms")
@@ -206,7 +206,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
             duplicateRoom.put("roomNumber", createdRoomNumber); // Use the created room's number
 
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(duplicateRoom)
                     .when()
                     .post("/rooms")
@@ -227,7 +227,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         // Missing roomNumber and roomTypeId
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidRoom)
                 .when()
                 .post("/rooms")
@@ -244,7 +244,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         invalidRoom.put("roomTypeId", 99999L); // Non-existent room type
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidRoom)
                 .when()
                 .post("/rooms")
@@ -264,7 +264,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
                 RoomStatus.READY.name(), 2, "Basic", "Ready room", 1, false, false);
         
         Response response1 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(readyRoom)
                 .when()
                 .post("/rooms")
@@ -284,7 +284,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
                 RoomStatus.CLEANING.name(), 2, "Basic", "Cleaning room", 1, false, false);
         
         Response response2 = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(cleaningRoom)
                 .when()
                 .post("/rooms")
@@ -308,7 +308,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     public void testGetRoomById_Success() {
         if (createdRoomId != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rooms/{id}", createdRoomId)
                     .then()
@@ -320,7 +320,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         } else {
             // If room creation failed, try to get any existing room
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -334,7 +334,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
             if (rooms != null && !rooms.isEmpty()) {
                 Long roomId = ((Number) rooms.get(0).get("id")).longValue();
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/rooms/{id}", roomId)
                         .then()
@@ -347,7 +347,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
                 if (allRooms != null && !allRooms.isEmpty()) {
                     Long roomId = ((Number) allRooms.get(0).get("id")).longValue();
                     given()
-                            .spec(requestSpec)
+                            .spec(authenticatedRequestSpec)
                             .when()
                             .get("/rooms/{id}", roomId)
                             .then()
@@ -366,7 +366,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms/{id} - Get non-existent room should return 400")
     public void testGetRoomById_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rooms/{id}", 99999L)
                 .then()
@@ -379,7 +379,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     public void testGetRoomByNumber_Success() {
         if (createdRoomNumber != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rooms/number/{roomNumber}", createdRoomNumber)
                     .then()
@@ -390,7 +390,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         } else {
             // If no room was created, try with any existing room number
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -408,7 +408,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
             if (rooms != null && !rooms.isEmpty() && rooms.get(0).get("roomNumber") != null) {
                 String roomNumber = (String) rooms.get(0).get("roomNumber");
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/rooms/number/{roomNumber}", roomNumber)
                         .then()
@@ -426,7 +426,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms/number/{roomNumber} - Get non-existent room number should return 400")
     public void testGetRoomByNumber_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rooms/number/{roomNumber}", "NON_EXISTENT_99999")
                 .then()
@@ -438,7 +438,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Get all rooms (non-paginated)")
     public void testGetAllRooms_NonPaginated() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rooms")
                 .then()
@@ -467,7 +467,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test pagination with page and size")
     public void testGetAllRooms_WithPagination() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 2)
                 .when()
@@ -497,7 +497,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test pagination second page")
     public void testGetAllRooms_SecondPage() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 1)
                 .queryParam("size", 2)
                 .when()
@@ -522,7 +522,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test sorting by roomNumber ascending")
     public void testGetAllRooms_SortByRoomNumberAsc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "roomNumber")
@@ -549,7 +549,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test sorting by roomNumber descending")
     public void testGetAllRooms_SortByRoomNumberDesc() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "roomNumber")
@@ -576,7 +576,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test sorting by status")
     public void testGetAllRooms_SortByStatus() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "status")
@@ -598,7 +598,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test sorting by floor")
     public void testGetAllRooms_SortByFloor() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("sortBy", "floor")
@@ -623,7 +623,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     public void testGetAllRooms_FilterByRoomNumber() {
         if (createdRoomNumber != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("roomNumber", createdRoomNumber.substring(0, 3)) // Partial match
@@ -651,7 +651,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     public void testGetAllRooms_FilterByRoomTypeId() {
         if (roomTypeId != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("roomTypeId", roomTypeId)
@@ -677,7 +677,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by status READY")
     public void testGetAllRooms_FilterByStatusReady() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("status", "READY")
@@ -703,7 +703,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by status MAINTENANCE")
     public void testGetAllRooms_FilterByStatusMaintenance() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("status", "MAINTENANCE")
@@ -729,7 +729,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by status CLEANING")
     public void testGetAllRooms_FilterByStatusCleaning() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("status", "CLEANING")
@@ -755,7 +755,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by minMaxOccupancy")
     public void testGetAllRooms_FilterByMinMaxOccupancy() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("minMaxOccupancy", 3)
@@ -783,7 +783,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by maxMaxOccupancy")
     public void testGetAllRooms_FilterByMaxMaxOccupancy() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("maxMaxOccupancy", 2)
@@ -811,7 +811,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by floor")
     public void testGetAllRooms_FilterByFloor() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("floor", 1)
@@ -837,7 +837,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by hasBalcony")
     public void testGetAllRooms_FilterByHasBalcony() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("hasBalcony", true)
@@ -863,7 +863,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by hasView")
     public void testGetAllRooms_FilterByHasView() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("hasView", true)
@@ -890,7 +890,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     public void testGetAllRooms_SearchTerm_RoomNumber() {
         if (createdRoomNumber != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 10)
                     .queryParam("searchTerm", createdRoomNumber.substring(0, 3))
@@ -912,7 +912,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by searchTerm (description)")
     public void testGetAllRooms_SearchTerm_Description() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("searchTerm", "Test")
@@ -934,7 +934,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test filtering by searchTerm (amenities)")
     public void testGetAllRooms_SearchTerm_Amenities() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .queryParam("searchTerm", "WiFi")
@@ -956,7 +956,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms - Test combined filtering, pagination, and sorting")
     public void testGetAllRooms_CombinedFilters() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 5)
                 .queryParam("sortBy", "roomNumber")
@@ -992,7 +992,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms/available - Get available rooms (default)")
     public void testGetAvailableRooms() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rooms/available")
                 .then()
@@ -1020,7 +1020,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         LocalDate checkOutDate = checkInDate.plusDays(2);
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("checkInDate", checkInDate.format(DateTimeFormatter.ISO_DATE))
                 .queryParam("checkOutDate", checkOutDate.format(DateTimeFormatter.ISO_DATE))
                 .when()
@@ -1043,7 +1043,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         LocalDate checkOutDate = LocalDate.now().plusDays(1); // Check-out before check-in
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("checkInDate", checkInDate.format(DateTimeFormatter.ISO_DATE))
                 .queryParam("checkOutDate", checkOutDate.format(DateTimeFormatter.ISO_DATE))
                 .when()
@@ -1059,7 +1059,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         LocalDate date = LocalDate.now().plusDays(1);
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("checkInDate", date.format(DateTimeFormatter.ISO_DATE))
                 .queryParam("checkOutDate", date.format(DateTimeFormatter.ISO_DATE))
                 .when()
@@ -1082,7 +1082,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     public void testGetRoomsByType_Success() {
         if (roomTypeId != null) {
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rooms/type/{roomTypeId}", roomTypeId)
                     .then()
@@ -1107,7 +1107,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rooms/type/{roomTypeId} - Get rooms by invalid room type ID should fail")
     public void testGetRoomsByType_InvalidRoomTypeId() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rooms/type/{roomTypeId}", 99999L)
                 .then()
@@ -1130,7 +1130,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
             updateData.put("floor", 2);
 
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(updateData)
                     .when()
                     .put("/rooms/{id}", createdRoomId)
@@ -1148,7 +1148,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         } else {
             // Get an existing room to update
             Response listResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .queryParam("page", 0)
                     .queryParam("size", 1)
                     .when()
@@ -1174,7 +1174,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
                 updateData.put("description", "Updated description");
                 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/rooms/{id}", roomId)
@@ -1199,7 +1199,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
             updateData.put("status", "MAINTENANCE");
 
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(updateData)
                     .when()
                     .put("/rooms/{id}", createdRoomId)
@@ -1211,7 +1211,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
             // Change back to READY
             updateData.put("status", "READY");
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(updateData)
                     .when()
                     .put("/rooms/{id}", createdRoomId)
@@ -1230,7 +1230,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         updateData.put("roomTypeId", roomTypeId);
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(updateData)
                 .when()
                 .put("/rooms/{id}", 99999L)
@@ -1248,7 +1248,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         
         // First, get another room's number
         Response allRoomsResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("page", 0)
                 .queryParam("size", 10)
                 .when()
@@ -1279,7 +1279,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
                 updateData.put("roomTypeId", roomTypeId);
 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/rooms/{id}", createdRoomId)
@@ -1300,7 +1300,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         String uniqueRoomNumber = "DELETE_ME_TEST_" + timestamp;
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(createRoomMap(uniqueRoomNumber, roomTypeId, 
                         RoomStatus.READY.name(), 2, "Basic", "To be deleted", 1, false, false))
                 .when()
@@ -1314,7 +1314,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
 
         // Delete the room
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/rooms/{id}", roomIdToDelete)
                 .then()
@@ -1325,7 +1325,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
 
         // Verify room is deleted
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rooms/{id}", roomIdToDelete)
                 .then()
@@ -1337,7 +1337,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
     @DisplayName("DELETE /api/rooms/{id} - Delete non-existent room should fail")
     public void testDeleteRoom_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/rooms/{id}", 99999L)
                 .then()
@@ -1355,7 +1355,7 @@ public class RoomControllerIntegrationTest extends TestConfig {
         for (Long roomId : createdRoomIds) {
             try {
                 Response response = given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .delete("/rooms/{id}", roomId)
                         .then()

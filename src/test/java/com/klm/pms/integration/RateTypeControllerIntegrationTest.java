@@ -74,7 +74,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     private static void setupRoomTypes() {
         // Try to get existing room types
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/room-types")
                 .then()
@@ -100,7 +100,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
             roomType1.put("maxOccupancy", 2);
             
             Response createResponse1 = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(roomType1)
                     .when()
                     .post("/room-types")
@@ -119,7 +119,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
             roomType2.put("maxOccupancy", 3);
             
             Response createResponse2 = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(roomType2)
                     .when()
                     .post("/room-types")
@@ -153,7 +153,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/rate-types - Create a new rate type successfully")
     public void testCreateRateType_Success() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRateType1)
                 .when()
                 .post("/rate-types")
@@ -192,7 +192,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         rateTypeWithRates.put("roomTypeRates", roomTypeRates);
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(rateTypeWithRates)
                 .when()
                 .post("/rate-types")
@@ -219,7 +219,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/rate-types - Create additional rate type for testing")
     public void testCreateAdditionalRateType() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(testRateType3)
                 .when()
                 .post("/rate-types")
@@ -245,7 +245,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
             duplicateRateType.put("description", "Different description");
 
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(duplicateRateType)
                     .when()
                     .post("/rate-types")
@@ -266,7 +266,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         // Missing name
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(invalidRateType)
                 .when()
                 .post("/rate-types")
@@ -282,7 +282,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     public void testGetRateTypeById_Success() {
         if (createdRateTypeId != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rate-types/{id}", createdRateTypeId)
                     .then()
@@ -294,7 +294,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         } else {
             // If rate type creation failed, try to get any existing rate type
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rate-types")
                     .then()
@@ -306,7 +306,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
             if (!rateTypes.isEmpty()) {
                 Long rateTypeId = ((Number) rateTypes.get(0).get("id")).longValue();
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/rate-types/{id}", rateTypeId)
                         .then()
@@ -324,7 +324,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rate-types/{id} - Get non-existent rate type should return 400")
     public void testGetRateTypeById_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types/{id}", 99999L)
                 .then()
@@ -337,7 +337,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     public void testGetRateTypeByName_Success() {
         if (createdRateTypeName != null) {
             given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rate-types/name/{name}", createdRateTypeName)
                     .then()
@@ -348,7 +348,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         } else {
             // If no rate type was created, try with any existing rate type name
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rate-types")
                     .then()
@@ -360,7 +360,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
             if (!rateTypes.isEmpty() && rateTypes.get(0).get("name") != null) {
                 String name = (String) rateTypes.get(0).get("name");
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .get("/rate-types/name/{name}", name)
                         .then()
@@ -378,7 +378,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("GET /api/rate-types - Get all rate types")
     public void testGetAllRateTypes() {
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types")
                 .then()
@@ -403,7 +403,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
             updateData.put("description", "Updated description for testing");
 
             Response response = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .body(updateData)
                     .when()
                     .put("/rate-types/{id}", createdRateTypeId)
@@ -421,7 +421,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         } else {
             // Get an existing rate type to update
             Response listResponse = given()
-                    .spec(requestSpec)
+                    .spec(authenticatedRequestSpec)
                     .when()
                     .get("/rate-types")
                     .then()
@@ -439,7 +439,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
                 updateData.put("description", "Updated description");
                 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/rate-types/{id}", rateTypeId)
@@ -462,7 +462,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         updateData.put("description", "Test");
 
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(updateData)
                 .when()
                 .put("/rate-types/{id}", 99999L)
@@ -481,7 +481,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         
         // First, get another rate type's name
         Response allRateTypesResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types")
                 .then()
@@ -506,7 +506,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
                 updateData.put("description", "Test");
 
                 given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .body(updateData)
                         .when()
                         .put("/rate-types/{id}", createdRateTypeId)
@@ -530,7 +530,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         Map<String, Object> roomTypeRate = createRoomTypeRateMap(roomTypeId1, new BigDecimal("150.00"));
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(roomTypeRate)
                 .when()
                 .post("/rate-types/{rateTypeId}/room-type-rates", createdRateTypeId)
@@ -557,7 +557,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         Map<String, Object> roomTypeRate = createRoomTypeRateMap(roomTypeId1, new BigDecimal("160.00"));
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(roomTypeRate)
                 .when()
                 .post("/rate-types/{rateTypeId}/room-type-rates", createdRateTypeId)
@@ -576,7 +576,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         BigDecimal newRate = new BigDecimal("175.00");
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .queryParam("rate", newRate)
                 .when()
                 .put("/rate-types/{rateTypeId}/room-type-rates/{roomTypeId}", createdRateTypeId, roomTypeId1)
@@ -611,7 +611,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         }
         
         Response response = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types/{rateTypeId}/room-type-rates/{roomTypeId}", createdRateTypeId, roomTypeId1)
                 .then()
@@ -636,7 +636,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         Map<String, Object> roomTypeRate = createRoomTypeRateMap(roomTypeId2, new BigDecimal("200.00"));
         
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(roomTypeRate)
                 .when()
                 .post("/rate-types/{rateTypeId}/room-type-rates", createdRateTypeId)
@@ -645,7 +645,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         
         // Now delete it
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/rate-types/{rateTypeId}/room-type-rates/{roomTypeId}", createdRateTypeId, roomTypeId2)
                 .then()
@@ -653,7 +653,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         
         // Verify it's deleted
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types/{rateTypeId}/room-type-rates/{roomTypeId}", createdRateTypeId, roomTypeId2)
                 .then()
@@ -671,7 +671,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         String uniqueName = "DELETE_ME_TEST_" + timestamp;
         
         Response createResponse = given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .body(createRateTypeMap(uniqueName, "To be deleted"))
                 .when()
                 .post("/rate-types")
@@ -684,7 +684,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
 
         // Delete the rate type
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/rate-types/{id}", rateTypeIdToDelete)
                 .then()
@@ -695,7 +695,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
 
         // Verify rate type is deleted
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .get("/rate-types/{id}", rateTypeIdToDelete)
                 .then()
@@ -707,7 +707,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
     @DisplayName("DELETE /api/rate-types/{id} - Delete non-existent rate type should fail")
     public void testDeleteRateType_NotFound() {
         given()
-                .spec(requestSpec)
+                .spec(authenticatedRequestSpec)
                 .when()
                 .delete("/rate-types/{id}", 99999L)
                 .then()
@@ -725,7 +725,7 @@ public class RateTypeControllerIntegrationTest extends TestConfig {
         for (Long rateTypeId : createdRateTypeIds) {
             try {
                 Response response = given()
-                        .spec(requestSpec)
+                        .spec(authenticatedRequestSpec)
                         .when()
                         .delete("/rate-types/{id}", rateTypeId)
                         .then()
