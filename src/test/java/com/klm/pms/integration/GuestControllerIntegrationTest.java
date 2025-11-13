@@ -90,7 +90,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
     @DisplayName("POST /api/guests - Request without token should return 401")
     public void testCreateGuest_Unauthorized_NoToken() {
         given()
-                .spec(authenticatedRequestSpec)  // No authentication header
+                .spec(requestSpec)  // No authentication header
                 .body(testGuest1)
                 .when()
                 .post("/guests")
