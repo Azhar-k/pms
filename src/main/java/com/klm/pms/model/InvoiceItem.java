@@ -1,5 +1,6 @@
 package com.klm.pms.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -15,6 +16,7 @@ public class InvoiceItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonBackReference
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_id", nullable = false)

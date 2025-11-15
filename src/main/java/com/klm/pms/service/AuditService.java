@@ -268,7 +268,8 @@ public class AuditService {
                fieldName.equals("reservations") || // Skip collections to avoid circular references
                fieldName.equals("rooms") ||
                fieldName.equals("invoices") ||
-               fieldName.equals("roomTypeRates");
+               fieldName.equals("roomTypeRates") ||
+               fieldName.equals("items"); // Skip Invoice.items to avoid circular references
     }
     
     /**

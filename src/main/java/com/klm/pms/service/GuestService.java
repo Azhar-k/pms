@@ -1,5 +1,6 @@
 package com.klm.pms.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.klm.pms.dto.GuestDTO;
 import com.klm.pms.dto.GuestFilterRequest;
 import com.klm.pms.dto.PageResponse;
@@ -36,6 +37,9 @@ public class GuestService {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     public GuestDTO createGuest(GuestDTO guestDTO) {
         logger.info("Creating new guest with email: {}", guestDTO.getEmail());
 
@@ -65,20 +69,30 @@ public class GuestService {
                     return new RuntimeException("Guest not found with id: " + id);
                 });
         
-        // Store old state for audit
-        Guest oldGuest = new Guest();
-        oldGuest.setId(existingGuest.getId());
-        oldGuest.setFirstName(existingGuest.getFirstName());
-        oldGuest.setLastName(existingGuest.getLastName());
-        oldGuest.setEmail(existingGuest.getEmail());
-        oldGuest.setPhoneNumber(existingGuest.getPhoneNumber());
-        oldGuest.setAddress(existingGuest.getAddress());
-        oldGuest.setCity(existingGuest.getCity());
-        oldGuest.setState(existingGuest.getState());
-        oldGuest.setCountry(existingGuest.getCountry());
-        oldGuest.setPostalCode(existingGuest.getPostalCode());
-        oldGuest.setIdentificationType(existingGuest.getIdentificationType());
-        oldGuest.setIdentificationNumber(existingGuest.getIdentificationNumber());
+        // Store old state for audit BEFORE any modifications - create a deep copy
+        Guest oldGuest = null;
+        try {
+            // Use ObjectMapper to create a deep copy of the entity
+            String json = objectMapper.writeValueAsString(existingGuest);
+            oldGuest = objectMapper.readValue(json, Guest.class);
+            logger.debug("Created deep copy of guest {} for audit logging", id);
+        } catch (Exception e) {
+            logger.warn("Failed to create deep copy of guest for audit, will use partial copy", e);
+            // Fallback to partial copy if deep copy fails
+            oldGuest = new Guest();
+            oldGuest.setId(existingGuest.getId());
+            oldGuest.setFirstName(existingGuest.getFirstName());
+            oldGuest.setLastName(existingGuest.getLastName());
+            oldGuest.setEmail(existingGuest.getEmail());
+            oldGuest.setPhoneNumber(existingGuest.getPhoneNumber());
+            oldGuest.setAddress(existingGuest.getAddress());
+            oldGuest.setCity(existingGuest.getCity());
+            oldGuest.setState(existingGuest.getState());
+            oldGuest.setCountry(existingGuest.getCountry());
+            oldGuest.setPostalCode(existingGuest.getPostalCode());
+            oldGuest.setIdentificationType(existingGuest.getIdentificationType());
+            oldGuest.setIdentificationNumber(existingGuest.getIdentificationNumber());
+        }
         
         // Check email uniqueness if it's being changed
         if (guestDTO.getEmail() != null && !guestDTO.getEmail().equals(existingGuest.getEmail())) {

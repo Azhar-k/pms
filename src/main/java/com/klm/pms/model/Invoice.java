@@ -1,6 +1,7 @@
 package com.klm.pms.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -65,6 +66,7 @@ public class Invoice {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<InvoiceItem> items = new ArrayList<>();
 
