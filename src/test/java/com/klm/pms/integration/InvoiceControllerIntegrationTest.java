@@ -408,7 +408,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/invoices/generate/{reservationId}", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found (via GlobalExceptionHandler)
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -510,7 +510,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/invoices/{id}", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found (via GlobalExceptionHandler)
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -570,7 +570,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/invoices/number/{invoiceNumber}", "NON_EXISTENT_99999")
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -1118,7 +1118,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/invoices/{invoiceId}/items", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -1239,7 +1239,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
                 .when()
                 .delete("/invoices/{invoiceId}/items/{itemId}", 99999L, 1L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -1346,7 +1346,7 @@ public class InvoiceControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/invoices/{invoiceId}/pay", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test

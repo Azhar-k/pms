@@ -400,7 +400,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/reservations")
                 .then()
-                .statusCode(400);
+                .statusCode(404); // Application returns 404 (Not Found) for invalid guest ID
     }
 
     @Test
@@ -416,7 +416,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/reservations")
                 .then()
-                .statusCode(400);
+                .statusCode(404); // Application returns 404 (Not Found) for invalid room ID
     }
 
     @Test
@@ -432,7 +432,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/reservations")
                 .then()
-                .statusCode(400);
+                .statusCode(404); // Application returns 404 (Not Found) for invalid rate type ID
     }
 
     @Test
@@ -555,7 +555,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/reservations/{id}", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found (via GlobalExceptionHandler)
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -615,7 +615,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/reservations/number/{reservationNumber}", "NON_EXISTENT_99999")
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -1059,7 +1059,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/reservations/{id}/check-in", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -1164,7 +1164,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/reservations/{id}/check-out", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -1273,7 +1273,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .put("/reservations/{id}", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -1387,7 +1387,7 @@ public class ReservationControllerIntegrationTest extends TestConfig {
                 .when()
                 .post("/reservations/{id}/cancel", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test

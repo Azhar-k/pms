@@ -214,7 +214,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                     .when()
                     .post("/guests")
                     .then()
-                    .statusCode(400); // API returns 400 for duplicate email
+                    .statusCode(409); // API returns 409 (Conflict) for duplicate email
         } else {
             // Skip test if no guest was created
             Assertions.fail("Cannot test duplicate email - no guest was created in previous test");
@@ -311,7 +311,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/guests/{id}", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found (via GlobalExceptionHandler)
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -892,7 +892,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                 .when()
                 .put("/guests/{id}", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found (via GlobalExceptionHandler)
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @Test
@@ -939,7 +939,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                         .when()
                         .put("/guests/{id}", createdGuestId)
                         .then()
-                        .statusCode(400); // Should fail due to duplicate email (returns 400)
+                        .statusCode(409); // Should fail due to duplicate email (returns 409 Conflict)
             }
         }
     }
@@ -997,7 +997,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                 .when()
                 .delete("/guests/{id}", 99999L)
                 .then()
-                .statusCode(400); // Application returns 400 for not found (via GlobalExceptionHandler)
+                .statusCode(404); // Application returns 404 (Not Found) for not found
     }
 
     @AfterAll
