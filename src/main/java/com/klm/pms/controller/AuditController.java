@@ -2,9 +2,9 @@ package com.klm.pms.controller;
 
 import com.klm.pms.dto.AuditLogDTO;
 import com.klm.pms.dto.PageResponse;
-import com.klm.pms.exception.UnauthorizedException;
 import com.klm.pms.model.AuditLog;
 import com.klm.pms.repository.AuditLogRepository;
+import com.klm.pms.security.RequireRole;
 import com.klm.pms.util.SecurityContextUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -30,23 +30,13 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/audit-logs")
 @Tag(name = "Audit Logs", description = "APIs for retrieving audit logs (Admin only)")
+@RequireRole("admin")
 public class AuditController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuditController.class);
 
     @Autowired
     private AuditLogRepository auditLogRepository;
-
-    /**
-     * Check if the current user is an admin.
-     * Throws UnauthorizedException if not admin.
-     */
-    private void checkAdminAccess() {
-        if (!SecurityContextUtil.isAdmin()) {
-            logger.warn("Non-admin user attempted to access audit logs: {}", SecurityContextUtil.getCurrentUsername());
-            throw new UnauthorizedException("Only administrators can access audit logs");
-        }
-    }
 
     @GetMapping
     @Operation(summary = "Get all audit logs", description = "Retrieves audit logs with pagination and filtering. Admin only.")
@@ -66,8 +56,6 @@ public class AuditController {
             @Parameter(description = "Action filter (CREATE, UPDATE, DELETE)") @RequestParam(required = false) AuditLog.AuditAction action,
             @Parameter(description = "Start date filter (ISO format)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @Parameter(description = "End date filter (ISO format)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        
-        checkAdminAccess();
         
         logger.info("GET /api/audit-logs - Fetching audit logs by admin: {}", SecurityContextUtil.getCurrentUsername());
         
@@ -116,8 +104,6 @@ public class AuditController {
     public ResponseEntity<AuditLogDTO> getAuditLogById(
             @Parameter(description = "Audit log ID", required = true) @PathVariable Long id) {
         
-        checkAdminAccess();
-        
         logger.info("GET /api/audit-logs/{} - Fetching audit log by ID", id);
         
         AuditLog auditLog = auditLogRepository.findById(id)
@@ -138,8 +124,6 @@ public class AuditController {
     public ResponseEntity<List<AuditLogDTO>> getAuditLogsByEntity(
             @Parameter(description = "Entity type (e.g., Guest, Room)", required = true) @PathVariable String entityType,
             @Parameter(description = "Entity ID", required = true) @PathVariable Long entityId) {
-        
-        checkAdminAccess();
         
         logger.info("GET /api/audit-logs/entity/{}/{} - Fetching audit logs for entity", entityType, entityId);
         
