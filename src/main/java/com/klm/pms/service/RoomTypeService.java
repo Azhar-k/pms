@@ -25,6 +25,9 @@ public class RoomTypeService {
     @Autowired
     private RoomTypeMapper roomTypeMapper;
 
+    @Autowired
+    private AuditService auditService;
+
     public RoomTypeDTO createRoomType(RoomTypeDTO roomTypeDTO) {
         logger.info("Creating new room type with name: {}", roomTypeDTO.getName());
         
@@ -37,6 +40,10 @@ public class RoomTypeService {
         RoomType roomType = roomTypeMapper.toEntity(roomTypeDTO);
         RoomType savedRoomType = roomTypeRepository.save(roomType);
         logger.info("Successfully created room type with ID: {} and name: {}", savedRoomType.getId(), savedRoomType.getName());
+        
+        // Audit log
+        auditService.logCreate("RoomType", savedRoomType.getId(), savedRoomType);
+        
         return roomTypeMapper.toDTO(savedRoomType);
     }
 
@@ -48,6 +55,22 @@ public class RoomTypeService {
                     logger.error("Room type not found with ID: {}", id);
                     return new RuntimeException("Room type not found with id: " + id);
                 });
+        
+        // Store old state for audit
+        RoomType oldRoomType = new RoomType();
+        oldRoomType.setId(existingRoomType.getId());
+        oldRoomType.setName(existingRoomType.getName());
+        oldRoomType.setDescription(existingRoomType.getDescription());
+        oldRoomType.setBasePricePerNight(existingRoomType.getBasePricePerNight());
+        oldRoomType.setMaxOccupancy(existingRoomType.getMaxOccupancy());
+        oldRoomType.setAmenities(existingRoomType.getAmenities());
+        oldRoomType.setDefaultRoomSize(existingRoomType.getDefaultRoomSize());
+        oldRoomType.setHasBalcony(existingRoomType.getHasBalcony());
+        oldRoomType.setHasView(existingRoomType.getHasView());
+        oldRoomType.setHasMinibar(existingRoomType.getHasMinibar());
+        oldRoomType.setHasSafe(existingRoomType.getHasSafe());
+        oldRoomType.setHasAirConditioning(existingRoomType.getHasAirConditioning());
+        oldRoomType.setBedType(existingRoomType.getBedType());
         
         // Check name uniqueness if it's being changed
         if (!roomTypeDTO.getName().equals(existingRoomType.getName()) && 
@@ -71,6 +94,10 @@ public class RoomTypeService {
         
         RoomType updatedRoomType = roomTypeRepository.save(existingRoomType);
         logger.info("Successfully updated room type with ID: {}", id);
+        
+        // Audit log
+        auditService.logUpdate("RoomType", id, oldRoomType, updatedRoomType);
+        
         return roomTypeMapper.toDTO(updatedRoomType);
     }
 
@@ -122,6 +149,9 @@ public class RoomTypeService {
             throw new RuntimeException("Cannot delete room type. There are " + 
                     roomType.getRooms().size() + " room(s) using this room type");
         }
+        
+        // Audit log before deletion
+        auditService.logDelete("RoomType", id, roomType);
         
         roomTypeRepository.deleteById(id);
         logger.info("Successfully deleted room type with ID: {}", id);

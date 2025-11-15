@@ -46,6 +46,9 @@ public class RoomService {
     @Autowired
     private ReservationRepository reservationRepository;
 
+    @Autowired
+    private AuditService auditService;
+
     public RoomDTO createRoom(RoomDTO roomDTO) {
         logger.info("Creating new room with number: {} and room type ID: {}", roomDTO.getRoomNumber(), roomDTO.getRoomTypeId());
         
@@ -68,6 +71,10 @@ public class RoomService {
         room.setRoomType(roomType);
         Room savedRoom = roomRepository.save(room);
         logger.info("Successfully created room with ID: {} and number: {}", savedRoom.getId(), savedRoom.getRoomNumber());
+        
+        // Audit log
+        auditService.logCreate("Room", savedRoom.getId(), savedRoom);
+        
         return roomMapper.toDTO(savedRoom);
     }
 
@@ -79,6 +86,18 @@ public class RoomService {
                     logger.error("Room not found with ID: {}", id);
                     return new RuntimeException("Room not found with id: " + id);
                 });
+        
+        // Store old state for audit
+        Room oldRoom = new Room();
+        oldRoom.setId(existingRoom.getId());
+        oldRoom.setRoomNumber(existingRoom.getRoomNumber());
+        oldRoom.setStatus(existingRoom.getStatus());
+        oldRoom.setMaxOccupancy(existingRoom.getMaxOccupancy());
+        oldRoom.setAmenities(existingRoom.getAmenities());
+        oldRoom.setDescription(existingRoom.getDescription());
+        oldRoom.setFloor(existingRoom.getFloor());
+        oldRoom.setHasBalcony(existingRoom.getHasBalcony());
+        oldRoom.setHasView(existingRoom.getHasView());
         
         // Check room number uniqueness if it's being changed
         if (!roomDTO.getRoomNumber().equals(existingRoom.getRoomNumber())) {
@@ -115,6 +134,10 @@ public class RoomService {
         
         Room updatedRoom = roomRepository.save(existingRoom);
         logger.info("Successfully updated room with ID: {}", id);
+        
+        // Audit log
+        auditService.logUpdate("Room", id, oldRoom, updatedRoom);
+        
         return roomMapper.toDTO(updatedRoom);
     }
 
@@ -251,10 +274,15 @@ public class RoomService {
 
     public void deleteRoom(Long id) {
         logger.info("Deleting room with ID: {}", id);
-        if (!roomRepository.existsById(id)) {
-            logger.error("Failed to delete: Room not found with ID: {}", id);
-            throw new RuntimeException("Room not found with id: " + id);
-        }
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> {
+                    logger.error("Failed to delete: Room not found with ID: {}", id);
+                    return new RuntimeException("Room not found with id: " + id);
+                });
+        
+        // Audit log before deletion
+        auditService.logDelete("Room", id, room);
+        
         roomRepository.deleteById(id);
         logger.info("Successfully deleted room with ID: {}", id);
     }

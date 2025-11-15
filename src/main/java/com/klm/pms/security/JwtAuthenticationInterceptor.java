@@ -20,6 +20,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String USERNAME_ATTRIBUTE = "username";
+    private static final String ROLES_ATTRIBUTE = "roles";
 
     @Autowired
     private JwtTokenValidator jwtTokenValidator;
@@ -76,9 +77,11 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
             throw new UnauthorizedException("Token is missing the required subject claim");
         }
 
-        // Store username in request attribute for use in controllers
+        // Store username and roles in request attribute for use in controllers
         request.setAttribute(USERNAME_ATTRIBUTE, username);
-        logger.debug("Token successfully validated for user '{}' on path: {}", username, requestPath);
+        request.setAttribute(ROLES_ATTRIBUTE, validationResult.getRoles());
+        logger.debug("Token successfully validated for user '{}' with roles {} on path: {}", 
+                username, validationResult.getRoles(), requestPath);
         
         return true;
     }

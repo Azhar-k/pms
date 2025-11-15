@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class JwtTokenValidator {
@@ -40,10 +42,14 @@ public class JwtTokenValidator {
             Date expiration = claims.getExpiration();
             boolean expired = expiration != null && expiration.before(new Date());
 
+            // Extract roles from token claims
+            List<String> roles = extractRoles(claims);
+
             return TokenValidationResult.builder()
                     .valid(!expired)
                     .username(username)
                     .expired(expired)
+                    .roles(roles)
                     .build();
         } catch (Exception ex) {
             logger.warn("Token validation failed", ex);
@@ -52,6 +58,32 @@ public class JwtTokenValidator {
                     .error(ex.getMessage())
                     .build();
         }
+    }
+
+    private List<String> extractRoles(Claims claims) {
+        List<String> roles = new ArrayList<>();
+        
+        // Try to extract roles from "roles" claim (array or list)
+        Object rolesClaim = claims.get("roles");
+        if (rolesClaim != null) {
+            if (rolesClaim instanceof List) {
+                for (Object role : (List<?>) rolesClaim) {
+                    if (role != null) {
+                        roles.add(role.toString());
+                    }
+                }
+            } else if (rolesClaim instanceof String) {
+                roles.add((String) rolesClaim);
+            }
+        }
+        
+        // Try to extract role from "role" claim (single value)
+        Object roleClaim = claims.get("role");
+        if (roleClaim != null) {
+            roles.add(roleClaim.toString());
+        }
+        
+        return roles;
     }
 }
 

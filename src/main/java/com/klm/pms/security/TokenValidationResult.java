@@ -1,17 +1,21 @@
 package com.klm.pms.security;
 
+import java.util.List;
+
 public class TokenValidationResult {
 
     private final boolean valid;
     private final String username;
     private final boolean expired;
     private final String error;
+    private final List<String> roles;
 
     private TokenValidationResult(Builder builder) {
         this.valid = builder.valid;
         this.username = builder.username;
         this.expired = builder.expired;
         this.error = builder.error;
+        this.roles = builder.roles;
     }
 
     public boolean isValid() {
@@ -30,6 +34,14 @@ public class TokenValidationResult {
         return error;
     }
 
+    public List<String> getRoles() {
+        return roles;
+    }
+
+    public boolean hasRole(String role) {
+        return roles != null && roles.contains(role);
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -39,6 +51,7 @@ public class TokenValidationResult {
         private String username;
         private boolean expired;
         private String error;
+        private List<String> roles;
 
         private Builder() {
         }
@@ -60,6 +73,11 @@ public class TokenValidationResult {
 
         public Builder error(String error) {
             this.error = error;
+            return this;
+        }
+
+        public Builder roles(List<String> roles) {
+            this.roles = roles;
             return this;
         }
 

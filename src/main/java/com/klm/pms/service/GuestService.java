@@ -33,6 +33,9 @@ public class GuestService {
     @Autowired
     private GuestMapper guestMapper;
 
+    @Autowired
+    private AuditService auditService;
+
     public GuestDTO createGuest(GuestDTO guestDTO) {
         logger.info("Creating new guest with email: {}", guestDTO.getEmail());
 
@@ -46,6 +49,10 @@ public class GuestService {
         Guest guest = guestMapper.toEntity(guestDTO);
         Guest savedGuest = guestRepository.save(guest);
         logger.info("Successfully created guest with ID: {} and email: {}", savedGuest.getId(), savedGuest.getEmail());
+        
+        // Audit log
+        auditService.logCreate("Guest", savedGuest.getId(), savedGuest);
+        
         return guestMapper.toDTO(savedGuest);
     }
 
@@ -57,6 +64,21 @@ public class GuestService {
                     logger.error("Guest not found with ID: {}", id);
                     return new RuntimeException("Guest not found with id: " + id);
                 });
+        
+        // Store old state for audit
+        Guest oldGuest = new Guest();
+        oldGuest.setId(existingGuest.getId());
+        oldGuest.setFirstName(existingGuest.getFirstName());
+        oldGuest.setLastName(existingGuest.getLastName());
+        oldGuest.setEmail(existingGuest.getEmail());
+        oldGuest.setPhoneNumber(existingGuest.getPhoneNumber());
+        oldGuest.setAddress(existingGuest.getAddress());
+        oldGuest.setCity(existingGuest.getCity());
+        oldGuest.setState(existingGuest.getState());
+        oldGuest.setCountry(existingGuest.getCountry());
+        oldGuest.setPostalCode(existingGuest.getPostalCode());
+        oldGuest.setIdentificationType(existingGuest.getIdentificationType());
+        oldGuest.setIdentificationNumber(existingGuest.getIdentificationNumber());
         
         // Check email uniqueness if it's being changed
         if (guestDTO.getEmail() != null && !guestDTO.getEmail().equals(existingGuest.getEmail())) {
@@ -81,6 +103,10 @@ public class GuestService {
         
         Guest updatedGuest = guestRepository.save(existingGuest);
         logger.info("Successfully updated guest with ID: {}", id);
+        
+        // Audit log
+        auditService.logUpdate("Guest", id, oldGuest, updatedGuest);
+        
         return guestMapper.toDTO(updatedGuest);
     }
 
@@ -155,10 +181,15 @@ public class GuestService {
 
     public void deleteGuest(Long id) {
         logger.info("Deleting guest with ID: {}", id);
-        if (!guestRepository.existsById(id)) {
-            logger.error("Failed to delete: Guest not found with ID: {}", id);
-            throw new RuntimeException("Guest not found with id: " + id);
-        }
+        Guest guest = guestRepository.findById(id)
+                .orElseThrow(() -> {
+                    logger.error("Failed to delete: Guest not found with ID: {}", id);
+                    return new RuntimeException("Guest not found with id: " + id);
+                });
+        
+        // Audit log before deletion
+        auditService.logDelete("Guest", id, guest);
+        
         guestRepository.deleteById(id);
         logger.info("Successfully deleted guest with ID: {}", id);
     }
