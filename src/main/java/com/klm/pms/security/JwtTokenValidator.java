@@ -63,9 +63,13 @@ public class JwtTokenValidator {
     private List<String> extractRoles(Claims claims) {
         List<String> roles = new ArrayList<>();
         
+        // Debug: Log all available claims to help troubleshoot
+        logger.debug("Available claims in token: {}", claims.keySet());
+        
         // Try to extract roles from "roles" claim (array or list)
         Object rolesClaim = claims.get("roles");
         if (rolesClaim != null) {
+            logger.debug("Found 'roles' claim: {} (type: {})", rolesClaim, rolesClaim.getClass().getName());
             if (rolesClaim instanceof List) {
                 for (Object role : (List<?>) rolesClaim) {
                     if (role != null) {
@@ -75,14 +79,35 @@ public class JwtTokenValidator {
             } else if (rolesClaim instanceof String) {
                 roles.add((String) rolesClaim);
             }
+        } else {
+            logger.debug("No 'roles' claim found in token");
         }
         
         // Try to extract role from "role" claim (single value)
         Object roleClaim = claims.get("role");
         if (roleClaim != null) {
+            logger.debug("Found 'role' claim: {} (type: {})", roleClaim, roleClaim.getClass().getName());
             roles.add(roleClaim.toString());
+        } else {
+            logger.debug("No 'role' claim found in token");
         }
         
+        // Try alternative claim names that might be used
+        Object authoritiesClaim = claims.get("authorities");
+        if (authoritiesClaim != null) {
+            logger.debug("Found 'authorities' claim: {} (type: {})", authoritiesClaim, authoritiesClaim.getClass().getName());
+            if (authoritiesClaim instanceof List) {
+                for (Object authority : (List<?>) authoritiesClaim) {
+                    if (authority != null) {
+                        roles.add(authority.toString());
+                    }
+                }
+            } else if (authoritiesClaim instanceof String) {
+                roles.add((String) authoritiesClaim);
+            }
+        }
+        
+        logger.debug("Extracted roles: {}", roles);
         return roles;
     }
 }

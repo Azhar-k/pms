@@ -1,5 +1,6 @@
 package com.klm.pms.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -20,6 +21,7 @@ public class Invoice {
     @Column(unique = true, nullable = false)
     private String invoiceNumber; // Auto-generated unique identifier
 
+    @JsonBackReference
     @NotNull(message = "Reservation is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reservation_id", nullable = false)

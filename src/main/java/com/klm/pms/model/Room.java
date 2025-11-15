@@ -1,5 +1,7 @@
 package com.klm.pms.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,6 +22,7 @@ public class Room {
     @Column(nullable = false, unique = true)
     private String roomNumber;
 
+    @JsonBackReference
     @NotNull(message = "Room type is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_type_id", nullable = false)
@@ -47,6 +50,7 @@ public class Room {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Reservation> reservations = new ArrayList<>();
 

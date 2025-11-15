@@ -1,5 +1,6 @@
 package com.klm.pms.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -56,6 +57,7 @@ public class RoomType {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "roomType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Room> rooms = new ArrayList<>();
 

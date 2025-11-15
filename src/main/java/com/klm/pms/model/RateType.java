@@ -1,5 +1,6 @@
 package com.klm.pms.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
@@ -30,6 +31,7 @@ public class RateType {
     @OneToMany(mappedBy = "rateType", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<RateTypeRoomTypeRate> roomTypeRates = new ArrayList<>();
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "rateType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Reservation> reservations = new ArrayList<>();
 

@@ -56,6 +56,9 @@ public class ReservationService {
     @Autowired
     private ReservationMapper reservationMapper;
 
+    @Autowired
+    private AuditService auditService;
+
     public ReservationDTO createReservation(ReservationDTO reservationDTO) {
         logger.info("Creating new reservation for guest ID: {}, room ID: {}, rate type ID: {}, check-in: {}, check-out: {}", 
                 reservationDTO.getGuestId(), reservationDTO.getRoomId(), reservationDTO.getRateTypeId(),
@@ -136,6 +139,10 @@ public class ReservationService {
         Reservation savedReservation = reservationRepository.save(reservation);
         logger.info("Successfully created reservation with ID: {} and number: {} for total amount: {}", 
                 savedReservation.getId(), savedReservation.getReservationNumber(), totalAmount);
+        
+        // Audit log
+        auditService.logCreate("Reservation", savedReservation.getId(), savedReservation);
+        
         return reservationMapper.toDTO(savedReservation);
     }
 
@@ -147,6 +154,12 @@ public class ReservationService {
                     logger.error("Reservation not found with ID: {}", reservationId);
                     return new RuntimeException("Reservation not found with id: " + reservationId);
                 });
+        
+        // Store old state for audit
+        Reservation oldReservation = new Reservation();
+        oldReservation.setId(reservation.getId());
+        oldReservation.setStatus(reservation.getStatus());
+        oldReservation.setActualCheckInTime(reservation.getActualCheckInTime());
         
         if (reservation.getStatus() != ReservationStatus.CONFIRMED && 
             reservation.getStatus() != ReservationStatus.PENDING) {
@@ -163,6 +176,10 @@ public class ReservationService {
         Reservation updatedReservation = reservationRepository.save(reservation);
         logger.info("Successfully checked in reservation ID: {} for room: {}", 
                 reservationId, reservation.getRoom().getRoomNumber());
+        
+        // Audit log
+        auditService.logUpdate("Reservation", reservationId, oldReservation, updatedReservation);
+        
         return reservationMapper.toDTO(updatedReservation);
     }
 
@@ -174,6 +191,12 @@ public class ReservationService {
                     logger.error("Reservation not found with ID: {}", reservationId);
                     return new RuntimeException("Reservation not found with id: " + reservationId);
                 });
+        
+        // Store old state for audit
+        Reservation oldReservation = new Reservation();
+        oldReservation.setId(reservation.getId());
+        oldReservation.setStatus(reservation.getStatus());
+        oldReservation.setActualCheckOutTime(reservation.getActualCheckOutTime());
         
         if (reservation.getStatus() != ReservationStatus.CHECKED_IN) {
             logger.warn("Failed to check out reservation ID {}: Status is not CHECKED_IN, current status: {}", 
@@ -193,6 +216,10 @@ public class ReservationService {
         
         Reservation updatedReservation = reservationRepository.save(reservation);
         logger.info("Successfully checked out reservation ID: {} for room: {}", reservationId, room.getRoomNumber());
+        
+        // Audit log
+        auditService.logUpdate("Reservation", reservationId, oldReservation, updatedReservation);
+        
         return reservationMapper.toDTO(updatedReservation);
     }
 
@@ -204,6 +231,11 @@ public class ReservationService {
                     logger.error("Reservation not found with ID: {}", reservationId);
                     return new RuntimeException("Reservation not found with id: " + reservationId);
                 });
+        
+        // Store old state for audit
+        Reservation oldReservation = new Reservation();
+        oldReservation.setId(reservation.getId());
+        oldReservation.setStatus(reservation.getStatus());
         
         if (reservation.getStatus() == ReservationStatus.CHECKED_OUT) {
             logger.warn("Failed to cancel reservation ID {}: Already checked out", reservationId);
@@ -218,6 +250,10 @@ public class ReservationService {
         
         Reservation updatedReservation = reservationRepository.save(reservation);
         logger.info("Successfully cancelled reservation ID: {}", reservationId);
+        
+        // Audit log
+        auditService.logUpdate("Reservation", reservationId, oldReservation, updatedReservation);
+        
         return reservationMapper.toDTO(updatedReservation);
     }
 
@@ -328,6 +364,16 @@ public class ReservationService {
                     logger.error("Reservation not found with ID: {}", id);
                     return new RuntimeException("Reservation not found with id: " + id);
                 });
+        
+        // Store old state for audit BEFORE any modifications
+        Reservation oldReservation = new Reservation();
+        oldReservation.setId(existingReservation.getId());
+        oldReservation.setCheckInDate(existingReservation.getCheckInDate());
+        oldReservation.setCheckOutDate(existingReservation.getCheckOutDate());
+        oldReservation.setNumberOfGuests(existingReservation.getNumberOfGuests());
+        oldReservation.setStatus(existingReservation.getStatus());
+        oldReservation.setTotalAmount(existingReservation.getTotalAmount());
+        oldReservation.setSpecialRequests(existingReservation.getSpecialRequests());
         
         // Cannot update checked out reservations
         if (existingReservation.getStatus() == ReservationStatus.CHECKED_OUT) {
@@ -455,6 +501,10 @@ public class ReservationService {
         
         Reservation updatedReservation = reservationRepository.save(existingReservation);
         logger.info("Successfully updated reservation ID: {}", id);
+        
+        // Audit log
+        auditService.logUpdate("Reservation", id, oldReservation, updatedReservation);
+        
         return reservationMapper.toDTO(updatedReservation);
     }
 }
