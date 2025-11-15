@@ -12,8 +12,7 @@ public class AuditLogDTO {
     private AuditLog.AuditAction action;
     private String username;
     private LocalDateTime timestamp;
-    private String oldValue;
-    private String newValue;
+    private String changes;
     private String description;
     private String requestPath;
     private String requestMethod;
@@ -82,20 +81,12 @@ public class AuditLogDTO {
         this.timestamp = timestamp;
     }
 
-    public String getOldValue() {
-        return oldValue;
+    public String getChanges() {
+        return changes;
     }
 
-    public void setOldValue(String oldValue) {
-        this.oldValue = oldValue;
-    }
-
-    public String getNewValue() {
-        return newValue;
-    }
-
-    public void setNewValue(String newValue) {
-        this.newValue = newValue;
+    public void setChanges(String changes) {
+        this.changes = changes;
     }
 
     public String getDescription() {

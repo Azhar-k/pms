@@ -33,10 +33,7 @@ public class AuditLog {
     private LocalDateTime timestamp;
 
     @Column(columnDefinition = "TEXT")
-    private String oldValue; // JSON representation of old state (for UPDATE/DELETE)
-
-    @Column(columnDefinition = "TEXT")
-    private String newValue; // JSON representation of new state (for CREATE/UPDATE)
+    private String changes; // JSON representation of changed fields (for UPDATE operations)
 
     @Column(length = 500)
     private String description; // Human-readable description
@@ -115,20 +112,12 @@ public class AuditLog {
         this.timestamp = timestamp;
     }
 
-    public String getOldValue() {
-        return oldValue;
+    public String getChanges() {
+        return changes;
     }
 
-    public void setOldValue(String oldValue) {
-        this.oldValue = oldValue;
-    }
-
-    public String getNewValue() {
-        return newValue;
-    }
-
-    public void setNewValue(String newValue) {
-        this.newValue = newValue;
+    public void setChanges(String changes) {
+        this.changes = changes;
     }
 
     public String getDescription() {

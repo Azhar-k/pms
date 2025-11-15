@@ -1,5 +1,6 @@
 package com.klm.pms.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.klm.pms.dto.PageResponse;
 import com.klm.pms.dto.ReservationDTO;
 import com.klm.pms.dto.ReservationFilterRequest;
@@ -58,6 +59,9 @@ public class ReservationService {
 
     @Autowired
     private AuditService auditService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     public ReservationDTO createReservation(ReservationDTO reservationDTO) {
         logger.info("Creating new reservation for guest ID: {}, room ID: {}, rate type ID: {}, check-in: {}, check-out: {}", 
@@ -155,11 +159,19 @@ public class ReservationService {
                     return new RuntimeException("Reservation not found with id: " + reservationId);
                 });
         
-        // Store old state for audit
-        Reservation oldReservation = new Reservation();
-        oldReservation.setId(reservation.getId());
-        oldReservation.setStatus(reservation.getStatus());
-        oldReservation.setActualCheckInTime(reservation.getActualCheckInTime());
+        // Store old state for audit - create a deep copy
+        Reservation oldReservation = null;
+        try {
+            String json = objectMapper.writeValueAsString(reservation);
+            oldReservation = objectMapper.readValue(json, Reservation.class);
+            logger.debug("Created deep copy of reservation {} for check-in audit logging", reservationId);
+        } catch (Exception e) {
+            logger.warn("Failed to create deep copy of reservation for audit, will use partial copy", e);
+            oldReservation = new Reservation();
+            oldReservation.setId(reservation.getId());
+            oldReservation.setStatus(reservation.getStatus());
+            oldReservation.setActualCheckInTime(reservation.getActualCheckInTime());
+        }
         
         if (reservation.getStatus() != ReservationStatus.CONFIRMED && 
             reservation.getStatus() != ReservationStatus.PENDING) {
@@ -192,11 +204,19 @@ public class ReservationService {
                     return new RuntimeException("Reservation not found with id: " + reservationId);
                 });
         
-        // Store old state for audit
-        Reservation oldReservation = new Reservation();
-        oldReservation.setId(reservation.getId());
-        oldReservation.setStatus(reservation.getStatus());
-        oldReservation.setActualCheckOutTime(reservation.getActualCheckOutTime());
+        // Store old state for audit - create a deep copy
+        Reservation oldReservation = null;
+        try {
+            String json = objectMapper.writeValueAsString(reservation);
+            oldReservation = objectMapper.readValue(json, Reservation.class);
+            logger.debug("Created deep copy of reservation {} for check-out audit logging", reservationId);
+        } catch (Exception e) {
+            logger.warn("Failed to create deep copy of reservation for audit, will use partial copy", e);
+            oldReservation = new Reservation();
+            oldReservation.setId(reservation.getId());
+            oldReservation.setStatus(reservation.getStatus());
+            oldReservation.setActualCheckOutTime(reservation.getActualCheckOutTime());
+        }
         
         if (reservation.getStatus() != ReservationStatus.CHECKED_IN) {
             logger.warn("Failed to check out reservation ID {}: Status is not CHECKED_IN, current status: {}", 
@@ -232,10 +252,18 @@ public class ReservationService {
                     return new RuntimeException("Reservation not found with id: " + reservationId);
                 });
         
-        // Store old state for audit
-        Reservation oldReservation = new Reservation();
-        oldReservation.setId(reservation.getId());
-        oldReservation.setStatus(reservation.getStatus());
+        // Store old state for audit - create a deep copy
+        Reservation oldReservation = null;
+        try {
+            String json = objectMapper.writeValueAsString(reservation);
+            oldReservation = objectMapper.readValue(json, Reservation.class);
+            logger.debug("Created deep copy of reservation {} for cancel audit logging", reservationId);
+        } catch (Exception e) {
+            logger.warn("Failed to create deep copy of reservation for audit, will use partial copy", e);
+            oldReservation = new Reservation();
+            oldReservation.setId(reservation.getId());
+            oldReservation.setStatus(reservation.getStatus());
+        }
         
         if (reservation.getStatus() == ReservationStatus.CHECKED_OUT) {
             logger.warn("Failed to cancel reservation ID {}: Already checked out", reservationId);
@@ -365,15 +393,28 @@ public class ReservationService {
                     return new RuntimeException("Reservation not found with id: " + id);
                 });
         
-        // Store old state for audit BEFORE any modifications
-        Reservation oldReservation = new Reservation();
-        oldReservation.setId(existingReservation.getId());
-        oldReservation.setCheckInDate(existingReservation.getCheckInDate());
-        oldReservation.setCheckOutDate(existingReservation.getCheckOutDate());
-        oldReservation.setNumberOfGuests(existingReservation.getNumberOfGuests());
-        oldReservation.setStatus(existingReservation.getStatus());
-        oldReservation.setTotalAmount(existingReservation.getTotalAmount());
-        oldReservation.setSpecialRequests(existingReservation.getSpecialRequests());
+        // Store old state for audit BEFORE any modifications - create a deep copy
+        Reservation oldReservation = null;
+        try {
+            // Use ObjectMapper to create a deep copy of the entity
+            String json = objectMapper.writeValueAsString(existingReservation);
+            oldReservation = objectMapper.readValue(json, Reservation.class);
+            logger.debug("Created deep copy of reservation {} for audit logging", id);
+        } catch (Exception e) {
+            logger.warn("Failed to create deep copy of reservation for audit, will use partial copy", e);
+            // Fallback to partial copy if deep copy fails
+            oldReservation = new Reservation();
+            oldReservation.setId(existingReservation.getId());
+            oldReservation.setCheckInDate(existingReservation.getCheckInDate());
+            oldReservation.setCheckOutDate(existingReservation.getCheckOutDate());
+            oldReservation.setNumberOfGuests(existingReservation.getNumberOfGuests());
+            oldReservation.setStatus(existingReservation.getStatus());
+            oldReservation.setTotalAmount(existingReservation.getTotalAmount());
+            oldReservation.setSpecialRequests(existingReservation.getSpecialRequests());
+            oldReservation.setGuest(existingReservation.getGuest());
+            oldReservation.setRoom(existingReservation.getRoom());
+            oldReservation.setRateType(existingReservation.getRateType());
+        }
         
         // Cannot update checked out reservations
         if (existingReservation.getStatus() == ReservationStatus.CHECKED_OUT) {

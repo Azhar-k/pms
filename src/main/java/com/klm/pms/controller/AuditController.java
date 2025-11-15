@@ -165,8 +165,7 @@ public class AuditController {
         dto.setAction(auditLog.getAction());
         dto.setUsername(auditLog.getUsername());
         dto.setTimestamp(auditLog.getTimestamp());
-        dto.setOldValue(auditLog.getOldValue());
-        dto.setNewValue(auditLog.getNewValue());
+        dto.setChanges(auditLog.getChanges());
         dto.setDescription(auditLog.getDescription());
         dto.setRequestPath(auditLog.getRequestPath());
         dto.setRequestMethod(auditLog.getRequestMethod());
