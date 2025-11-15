@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.klm.pms.dto.PageResponse;
 import com.klm.pms.dto.ReservationDTO;
 import com.klm.pms.dto.ReservationFilterRequest;
+import com.klm.pms.exception.BusinessLogicException;
+import com.klm.pms.exception.EntityNotFoundException;
 import com.klm.pms.mapper.ReservationMapper;
 import com.klm.pms.model.Guest;
 import com.klm.pms.model.RateType;
@@ -15,6 +17,8 @@ import com.klm.pms.repository.RateTypeRepository;
 import com.klm.pms.repository.ReservationRepository;
 import com.klm.pms.repository.RoomRepository;
 import com.klm.pms.repository.specification.ReservationSpecification;
+import com.klm.pms.util.Constants;
+import com.klm.pms.util.ValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,33 +69,39 @@ public class ReservationService {
 
     public ReservationDTO createReservation(ReservationDTO reservationDTO) {
         logger.info("Creating new reservation for guest ID: {}, room ID: {}, rate type ID: {}, check-in: {}, check-out: {}", 
-                reservationDTO.getGuestId(), reservationDTO.getRoomId(), reservationDTO.getRateTypeId(),
-                reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate());
+                reservationDTO != null ? reservationDTO.getGuestId() : null,
+                reservationDTO != null ? reservationDTO.getRoomId() : null,
+                reservationDTO != null ? reservationDTO.getRateTypeId() : null,
+                reservationDTO != null ? reservationDTO.getCheckInDate() : null,
+                reservationDTO != null ? reservationDTO.getCheckOutDate() : null);
+        
+        // Defensive checks
+        ValidationUtil.requireNonNull(reservationDTO, "reservationDTO");
+        ValidationUtil.requireNonNull(reservationDTO.getGuestId(), "guestId");
+        ValidationUtil.requireNonNull(reservationDTO.getRoomId(), "roomId");
+        ValidationUtil.requireNonNull(reservationDTO.getRateTypeId(), "rateTypeId");
+        ValidationUtil.requireNonNull(reservationDTO.getCheckInDate(), "checkInDate");
+        ValidationUtil.requireNonNull(reservationDTO.getCheckOutDate(), "checkOutDate");
+        ValidationUtil.requireNonNull(reservationDTO.getNumberOfGuests(), "numberOfGuests");
+        ValidationUtil.requirePositive(reservationDTO.getNumberOfGuests(), "numberOfGuests");
         
         // Validate dates
-        if (reservationDTO.getCheckInDate().isAfter(reservationDTO.getCheckOutDate())) {
-            logger.warn("Failed to create reservation: Check-in date {} is after check-out date {}", 
-                    reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate());
-            throw new RuntimeException("Check-in date must be before check-out date");
-        }
-        
-        if (reservationDTO.getCheckInDate().isBefore(LocalDate.now())) {
-            logger.warn("Failed to create reservation: Check-in date {} is in the past", reservationDTO.getCheckInDate());
-            throw new RuntimeException("Check-in date cannot be in the past");
-        }
+        ValidationUtil.validateDateRange(reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate(), 
+                "checkInDate", "checkOutDate");
+        ValidationUtil.requireNotInPast(reservationDTO.getCheckInDate(), "checkInDate");
         
         // Get guest and room
         Guest guest = guestRepository.findById(reservationDTO.getGuestId())
                 .orElseThrow(() -> {
                     logger.error("Guest not found with ID: {}", reservationDTO.getGuestId());
-                    return new RuntimeException("Guest not found with id: " + reservationDTO.getGuestId());
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_GUEST, reservationDTO.getGuestId());
                 });
         logger.debug("Guest found: {} {}", guest.getFirstName(), guest.getLastName());
         
         Room room = roomRepository.findById(reservationDTO.getRoomId())
                 .orElseThrow(() -> {
                     logger.error("Room not found with ID: {}", reservationDTO.getRoomId());
-                    return new RuntimeException("Room not found with id: " + reservationDTO.getRoomId());
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_ROOM, reservationDTO.getRoomId());
                 });
         logger.debug("Room found: {}", room.getRoomNumber());
         
@@ -99,7 +109,7 @@ public class ReservationService {
         RateType rateType = rateTypeRepository.findById(reservationDTO.getRateTypeId())
                 .orElseThrow(() -> {
                     logger.error("Rate type not found with ID: {}", reservationDTO.getRateTypeId());
-                    return new RuntimeException("Rate type not found with id: " + reservationDTO.getRateTypeId());
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RATE_TYPE, reservationDTO.getRateTypeId());
                 });
         logger.debug("Rate type found: {}", rateType.getName());
         
@@ -110,14 +120,14 @@ public class ReservationService {
         if (!conflictingReservations.isEmpty()) {
             logger.warn("Failed to create reservation: Room {} has {} conflicting reservation(s)", 
                     room.getRoomNumber(), conflictingReservations.size());
-            throw new RuntimeException("Room is not available for the selected dates");
+            throw new BusinessLogicException(Constants.ERROR_ROOM_NOT_AVAILABLE);
         }
         
         // Check room capacity
         if (room.getMaxOccupancy() != null && reservationDTO.getNumberOfGuests() > room.getMaxOccupancy()) {
             logger.warn("Failed to create reservation: Number of guests {} exceeds room capacity {}", 
                     reservationDTO.getNumberOfGuests(), room.getMaxOccupancy());
-            throw new RuntimeException("Number of guests exceeds room capacity");
+            throw new BusinessLogicException(Constants.ERROR_EXCEEDS_CAPACITY);
         }
         
         // Create reservation
@@ -145,7 +155,13 @@ public class ReservationService {
                 savedReservation.getId(), savedReservation.getReservationNumber(), totalAmount);
         
         // Audit log
-        auditService.logCreate("Reservation", savedReservation.getId(), savedReservation);
+        try {
+            auditService.logCreate(Constants.AUDIT_ENTITY_RESERVATION, savedReservation.getId(), savedReservation);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for reservation creation, but reservation was created successfully. Reservation ID: {}", 
+                    savedReservation.getId(), e);
+            // Don't fail the operation if audit logging fails
+        }
         
         return reservationMapper.toDTO(savedReservation);
     }
@@ -153,10 +169,12 @@ public class ReservationService {
     public ReservationDTO checkIn(Long reservationId) {
         logger.info("Processing check-in for reservation ID: {}", reservationId);
         
+        ValidationUtil.requireNonNull(reservationId, "reservationId");
+        
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> {
                     logger.error("Reservation not found with ID: {}", reservationId);
-                    return new RuntimeException("Reservation not found with id: " + reservationId);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RESERVATION, reservationId);
                 });
         
         // Store old state for audit - create a deep copy
@@ -176,7 +194,8 @@ public class ReservationService {
         if (reservation.getStatus() != ReservationStatus.CONFIRMED && 
             reservation.getStatus() != ReservationStatus.PENDING) {
             logger.warn("Failed to check in reservation ID {}: Invalid status {}", reservationId, reservation.getStatus());
-            throw new RuntimeException("Reservation cannot be checked in. Current status: " + reservation.getStatus());
+            throw new BusinessLogicException(String.format(Constants.ERROR_INVALID_STATUS_TRANSITION, 
+                    reservation.getStatus(), ReservationStatus.CHECKED_IN));
         }
         
         reservation.setStatus(ReservationStatus.CHECKED_IN);
@@ -190,7 +209,13 @@ public class ReservationService {
                 reservationId, reservation.getRoom().getRoomNumber());
         
         // Audit log
-        auditService.logUpdate("Reservation", reservationId, oldReservation, updatedReservation);
+        try {
+            auditService.logUpdate(Constants.AUDIT_ENTITY_RESERVATION, reservationId, oldReservation, updatedReservation);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for check-in, but check-in was successful. Reservation ID: {}", 
+                    reservationId, e);
+            // Don't fail the operation if audit logging fails
+        }
         
         return reservationMapper.toDTO(updatedReservation);
     }
@@ -198,10 +223,12 @@ public class ReservationService {
     public ReservationDTO checkOut(Long reservationId) {
         logger.info("Processing check-out for reservation ID: {}", reservationId);
         
+        ValidationUtil.requireNonNull(reservationId, "reservationId");
+        
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> {
                     logger.error("Reservation not found with ID: {}", reservationId);
-                    return new RuntimeException("Reservation not found with id: " + reservationId);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RESERVATION, reservationId);
                 });
         
         // Store old state for audit - create a deep copy
@@ -221,7 +248,8 @@ public class ReservationService {
         if (reservation.getStatus() != ReservationStatus.CHECKED_IN) {
             logger.warn("Failed to check out reservation ID {}: Status is not CHECKED_IN, current status: {}", 
                     reservationId, reservation.getStatus());
-            throw new RuntimeException("Reservation must be checked in before checkout. Current status: " + reservation.getStatus());
+            throw new BusinessLogicException(String.format(Constants.ERROR_INVALID_STATUS_TRANSITION, 
+                    reservation.getStatus(), ReservationStatus.CHECKED_OUT));
         }
         
         reservation.setStatus(ReservationStatus.CHECKED_OUT);
@@ -238,7 +266,13 @@ public class ReservationService {
         logger.info("Successfully checked out reservation ID: {} for room: {}", reservationId, room.getRoomNumber());
         
         // Audit log
-        auditService.logUpdate("Reservation", reservationId, oldReservation, updatedReservation);
+        try {
+            auditService.logUpdate(Constants.AUDIT_ENTITY_RESERVATION, reservationId, oldReservation, updatedReservation);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for check-out, but check-out was successful. Reservation ID: {}", 
+                    reservationId, e);
+            // Don't fail the operation if audit logging fails
+        }
         
         return reservationMapper.toDTO(updatedReservation);
     }
@@ -246,10 +280,12 @@ public class ReservationService {
     public ReservationDTO cancelReservation(Long reservationId) {
         logger.info("Cancelling reservation ID: {}", reservationId);
         
+        ValidationUtil.requireNonNull(reservationId, "reservationId");
+        
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> {
                     logger.error("Reservation not found with ID: {}", reservationId);
-                    return new RuntimeException("Reservation not found with id: " + reservationId);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RESERVATION, reservationId);
                 });
         
         // Store old state for audit - create a deep copy
@@ -267,7 +303,7 @@ public class ReservationService {
         
         if (reservation.getStatus() == ReservationStatus.CHECKED_OUT) {
             logger.warn("Failed to cancel reservation ID {}: Already checked out", reservationId);
-            throw new RuntimeException("Cannot cancel a reservation that has been checked out");
+            throw new BusinessLogicException("Cannot cancel a reservation that has been checked out");
         }
         
         reservation.setStatus(ReservationStatus.CANCELLED);
@@ -280,7 +316,13 @@ public class ReservationService {
         logger.info("Successfully cancelled reservation ID: {}", reservationId);
         
         // Audit log
-        auditService.logUpdate("Reservation", reservationId, oldReservation, updatedReservation);
+        try {
+            auditService.logUpdate(Constants.AUDIT_ENTITY_RESERVATION, reservationId, oldReservation, updatedReservation);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for reservation cancellation, but reservation was cancelled successfully. Reservation ID: {}", 
+                    reservationId, e);
+            // Don't fail the operation if audit logging fails
+        }
         
         return reservationMapper.toDTO(updatedReservation);
     }
@@ -288,10 +330,12 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public ReservationDTO getReservationById(Long id) {
         logger.debug("Fetching reservation with ID: {}", id);
+        ValidationUtil.requireNonNull(id, "id");
+        
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.error("Reservation not found with ID: {}", id);
-                    return new RuntimeException("Reservation not found with id: " + id);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RESERVATION, id);
                 });
         logger.debug("Successfully retrieved reservation with ID: {}", id);
         return reservationMapper.toDTO(reservation);
@@ -300,10 +344,12 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public ReservationDTO getReservationByNumber(String reservationNumber) {
         logger.debug("Fetching reservation with number: {}", reservationNumber);
+        ValidationUtil.requireNonBlank(reservationNumber, "reservationNumber");
+        
         Reservation reservation = reservationRepository.findByReservationNumber(reservationNumber)
                 .orElseThrow(() -> {
                     logger.error("Reservation not found with number: {}", reservationNumber);
-                    return new RuntimeException("Reservation not found with number: " + reservationNumber);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RESERVATION, reservationNumber);
                 });
         logger.debug("Successfully retrieved reservation with number: {}", reservationNumber);
         return reservationMapper.toDTO(reservation);
@@ -323,6 +369,11 @@ public class ReservationService {
     public PageResponse<ReservationDTO> getAllReservationsPaginated(ReservationFilterRequest filter, int page, int size, String sortBy, String sortDir) {
         logger.debug("Fetching reservations with pagination - page: {}, size: {}, sortBy: {}, sortDir: {}", page, size, sortBy, sortDir);
         
+        // Validate and normalize pagination parameters
+        int[] pagination = ValidationUtil.validateAndNormalizePagination(page, size);
+        int normalizedPage = pagination[0];
+        int normalizedSize = pagination[1];
+        
         // Default sorting
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
         if (sortBy != null && !sortBy.isEmpty()) {
@@ -332,7 +383,7 @@ public class ReservationService {
             sort = Sort.by(direction, sortBy);
         }
         
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable = PageRequest.of(normalizedPage, normalizedSize, sort);
         
         // Build specification for filtering
         Specification<Reservation> spec = ReservationSpecification.withFilters(filter);
@@ -387,10 +438,13 @@ public class ReservationService {
     public ReservationDTO updateReservation(Long id, ReservationDTO reservationDTO) {
         logger.info("Updating reservation ID: {}", id);
         
+        ValidationUtil.requireNonNull(id, "id");
+        ValidationUtil.requireNonNull(reservationDTO, "reservationDTO");
+        
         Reservation existingReservation = reservationRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.error("Reservation not found with ID: {}", id);
-                    return new RuntimeException("Reservation not found with id: " + id);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RESERVATION, id);
                 });
         
         // Store old state for audit BEFORE any modifications - create a deep copy
@@ -419,16 +473,13 @@ public class ReservationService {
         // Cannot update checked out reservations
         if (existingReservation.getStatus() == ReservationStatus.CHECKED_OUT) {
             logger.warn("Failed to update reservation ID {}: Already checked out", id);
-            throw new RuntimeException("Cannot update a reservation that has been checked out");
+            throw new BusinessLogicException("Cannot update a reservation that has been checked out");
         }
         
         // Validate dates
         if (reservationDTO.getCheckInDate() != null && reservationDTO.getCheckOutDate() != null) {
-            if (reservationDTO.getCheckInDate().isAfter(reservationDTO.getCheckOutDate())) {
-                logger.warn("Failed to update reservation: Check-in date {} is after check-out date {}", 
-                        reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate());
-                throw new RuntimeException("Check-in date must be before check-out date");
-            }
+            ValidationUtil.validateDateRange(reservationDTO.getCheckInDate(), reservationDTO.getCheckOutDate(), 
+                    "checkInDate", "checkOutDate");
         }
         
         // Get guest if changed
@@ -438,7 +489,7 @@ public class ReservationService {
             guest = guestRepository.findById(reservationDTO.getGuestId())
                     .orElseThrow(() -> {
                         logger.error("Guest not found with ID: {}", reservationDTO.getGuestId());
-                        return new RuntimeException("Guest not found with id: " + reservationDTO.getGuestId());
+                        return new EntityNotFoundException(Constants.AUDIT_ENTITY_GUEST, reservationDTO.getGuestId());
                     });
             logger.debug("Guest changed from {} {} to {} {}", 
                     existingReservation.getGuest().getFirstName(), existingReservation.getGuest().getLastName(),
@@ -454,7 +505,7 @@ public class ReservationService {
             room = roomRepository.findById(reservationDTO.getRoomId())
                     .orElseThrow(() -> {
                         logger.error("Room not found with ID: {}", reservationDTO.getRoomId());
-                        return new RuntimeException("Room not found with id: " + reservationDTO.getRoomId());
+                        return new EntityNotFoundException(Constants.AUDIT_ENTITY_ROOM, reservationDTO.getRoomId());
                     });
             logger.debug("Room changed from {} to {}", existingReservation.getRoom().getRoomNumber(), room.getRoomNumber());
         }
@@ -466,7 +517,7 @@ public class ReservationService {
             rateType = rateTypeRepository.findById(reservationDTO.getRateTypeId())
                     .orElseThrow(() -> {
                         logger.error("Rate type not found with ID: {}", reservationDTO.getRateTypeId());
-                        return new RuntimeException("Rate type not found with id: " + reservationDTO.getRateTypeId());
+                        return new EntityNotFoundException(Constants.AUDIT_ENTITY_RATE_TYPE, reservationDTO.getRateTypeId());
                     });
             logger.debug("Rate type changed to: {}", rateType.getName());
         }
@@ -495,17 +546,18 @@ public class ReservationService {
             if (!conflictingReservations.isEmpty()) {
                 logger.warn("Failed to update reservation: Room {} has {} conflicting reservation(s)", 
                         room.getRoomNumber(), conflictingReservations.size());
-                throw new RuntimeException("Room is not available for the selected dates");
+                throw new BusinessLogicException(Constants.ERROR_ROOM_NOT_AVAILABLE);
             }
         }
         
         // Check room capacity if number of guests changed
         if (reservationDTO.getNumberOfGuests() != null && 
             !reservationDTO.getNumberOfGuests().equals(existingReservation.getNumberOfGuests())) {
+            ValidationUtil.requirePositive(reservationDTO.getNumberOfGuests(), "numberOfGuests");
             if (room.getMaxOccupancy() != null && reservationDTO.getNumberOfGuests() > room.getMaxOccupancy()) {
                 logger.warn("Failed to update reservation: Number of guests {} exceeds room capacity {}", 
                         reservationDTO.getNumberOfGuests(), room.getMaxOccupancy());
-                throw new RuntimeException("Number of guests exceeds room capacity");
+                throw new BusinessLogicException(Constants.ERROR_EXCEEDS_CAPACITY);
             }
         }
         
@@ -544,7 +596,13 @@ public class ReservationService {
         logger.info("Successfully updated reservation ID: {}", id);
         
         // Audit log
-        auditService.logUpdate("Reservation", id, oldReservation, updatedReservation);
+        try {
+            auditService.logUpdate(Constants.AUDIT_ENTITY_RESERVATION, id, oldReservation, updatedReservation);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for reservation update, but reservation was updated successfully. Reservation ID: {}", 
+                    id, e);
+            // Don't fail the operation if audit logging fails
+        }
         
         return reservationMapper.toDTO(updatedReservation);
     }

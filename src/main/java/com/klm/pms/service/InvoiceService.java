@@ -3,6 +3,8 @@ package com.klm.pms.service;
 import com.klm.pms.dto.InvoiceDTO;
 import com.klm.pms.dto.InvoiceFilterRequest;
 import com.klm.pms.dto.PageResponse;
+import com.klm.pms.exception.BusinessLogicException;
+import com.klm.pms.exception.EntityNotFoundException;
 import com.klm.pms.mapper.ReservationMapper;
 import com.klm.pms.model.Invoice;
 import com.klm.pms.model.Invoice.InvoiceStatus;
@@ -12,6 +14,8 @@ import com.klm.pms.repository.InvoiceItemRepository;
 import com.klm.pms.repository.InvoiceRepository;
 import com.klm.pms.repository.ReservationRepository;
 import com.klm.pms.repository.specification.InvoiceSpecification;
+import com.klm.pms.util.Constants;
+import com.klm.pms.util.ValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,22 +54,22 @@ public class InvoiceService {
     @Autowired
     private RateTypeService rateTypeService;
 
-    private static final BigDecimal TAX_RATE = new BigDecimal("0.10"); // 10% tax rate
-
     public InvoiceDTO generateInvoice(Long reservationId) {
         logger.info("Generating invoice for reservation ID: {}", reservationId);
+        
+        ValidationUtil.requireNonNull(reservationId, "reservationId");
         
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> {
                     logger.error("Reservation not found with ID: {}", reservationId);
-                    return new RuntimeException("Reservation not found with id: " + reservationId);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_RESERVATION, reservationId);
                 });
         
         // Check if invoice already exists
         List<Invoice> existingInvoices = invoiceRepository.findByReservationId(reservationId);
         if (!existingInvoices.isEmpty()) {
             logger.warn("Failed to generate invoice: Invoice already exists for reservation ID: {}", reservationId);
-            throw new RuntimeException("Invoice already exists for this reservation");
+            throw new BusinessLogicException("Invoice already exists for this reservation");
         }
         
         // Calculate room charges
@@ -80,7 +84,7 @@ public class InvoiceService {
         
         // Calculate totals
         BigDecimal subtotal = roomCharge;
-        BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
+        BigDecimal taxAmount = subtotal.multiply(Constants.TAX_RATE);
         BigDecimal totalAmount = subtotal.add(taxAmount);
         logger.debug("Invoice totals - Subtotal: {}, Tax: {}, Total: {}", subtotal, taxAmount, totalAmount);
         
@@ -89,7 +93,7 @@ public class InvoiceService {
         invoice.setReservation(reservation);
         invoice.setSubtotal(subtotal);
         invoice.setTaxAmount(taxAmount);
-        invoice.setDiscountAmount(BigDecimal.ZERO);
+        invoice.setDiscountAmount(Constants.ZERO_AMOUNT);
         invoice.setTotalAmount(totalAmount);
         invoice.setStatus(InvoiceStatus.PENDING);
         invoice.setIssuedDate(LocalDateTime.now());
@@ -116,15 +120,23 @@ public class InvoiceService {
     public InvoiceDTO addInvoiceItem(Long invoiceId, InvoiceDTO.InvoiceItemDTO itemDTO) {
         logger.info("Adding invoice item to invoice ID: {}", invoiceId);
         
+        ValidationUtil.requireNonNull(invoiceId, "invoiceId");
+        ValidationUtil.requireNonNull(itemDTO, "itemDTO");
+        ValidationUtil.requireNonNull(itemDTO.getDescription(), "description");
+        ValidationUtil.requireNonNull(itemDTO.getQuantity(), "quantity");
+        ValidationUtil.requireNonNull(itemDTO.getUnitPrice(), "unitPrice");
+        ValidationUtil.requirePositive(itemDTO.getQuantity(), "quantity");
+        ValidationUtil.requireNonNegative(itemDTO.getUnitPrice(), "unitPrice");
+        
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> {
                     logger.error("Invoice not found with ID: {}", invoiceId);
-                    return new RuntimeException("Invoice not found with id: " + invoiceId);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_INVOICE, invoiceId);
                 });
         
         if (invoice.getStatus() == InvoiceStatus.PAID) {
             logger.warn("Failed to add item: Invoice ID {} is already paid", invoiceId);
-            throw new RuntimeException("Cannot add items to a paid invoice");
+            throw new BusinessLogicException("Cannot add items to a paid invoice");
         }
         
         InvoiceItem item = new InvoiceItem();
@@ -141,9 +153,9 @@ public class InvoiceService {
         // Recalculate totals
         BigDecimal subtotal = invoice.getItems().stream()
                 .map(InvoiceItem::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(Constants.ZERO_AMOUNT, BigDecimal::add);
         
-        BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
+        BigDecimal taxAmount = subtotal.multiply(Constants.TAX_RATE);
         BigDecimal totalAmount = subtotal.add(taxAmount).subtract(invoice.getDiscountAmount());
         
         invoice.setSubtotal(subtotal);
@@ -161,15 +173,18 @@ public class InvoiceService {
     public InvoiceDTO removeInvoiceItem(Long invoiceId, Long itemId) {
         logger.info("Removing invoice item ID: {} from invoice ID: {}", itemId, invoiceId);
         
+        ValidationUtil.requireNonNull(invoiceId, "invoiceId");
+        ValidationUtil.requireNonNull(itemId, "itemId");
+        
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> {
                     logger.error("Invoice not found with ID: {}", invoiceId);
-                    return new RuntimeException("Invoice not found with id: " + invoiceId);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_INVOICE, invoiceId);
                 });
         
         if (invoice.getStatus() == InvoiceStatus.PAID) {
             logger.warn("Failed to remove item: Invoice ID {} is already paid", invoiceId);
-            throw new RuntimeException("Cannot remove items from a paid invoice");
+            throw new BusinessLogicException("Cannot remove items from a paid invoice");
         }
         
         // Find the item in the invoice's items list (which is already loaded)
@@ -178,7 +193,7 @@ public class InvoiceService {
                 .findFirst()
                 .orElseThrow(() -> {
                     logger.error("Invoice item ID {} not found in invoice ID {}", itemId, invoiceId);
-                    return new RuntimeException("Invoice item not found or does not belong to this invoice");
+                    return new EntityNotFoundException("InvoiceItem", itemId);
                 });
         
         // Remove item from invoice's items list
@@ -191,9 +206,9 @@ public class InvoiceService {
         // Recalculate totals
         BigDecimal subtotal = invoice.getItems().stream()
                 .map(InvoiceItem::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(Constants.ZERO_AMOUNT, BigDecimal::add);
         
-        BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
+        BigDecimal taxAmount = subtotal.multiply(Constants.TAX_RATE);
         BigDecimal totalAmount = subtotal.add(taxAmount).subtract(invoice.getDiscountAmount());
         
         invoice.setSubtotal(subtotal);
@@ -210,15 +225,18 @@ public class InvoiceService {
     public InvoiceDTO markInvoiceAsPaid(Long invoiceId, String paymentMethod) {
         logger.info("Marking invoice ID: {} as paid with payment method: {}", invoiceId, paymentMethod);
         
+        ValidationUtil.requireNonNull(invoiceId, "invoiceId");
+        ValidationUtil.requireNonBlank(paymentMethod, "paymentMethod");
+        
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> {
                     logger.error("Invoice not found with ID: {}", invoiceId);
-                    return new RuntimeException("Invoice not found with id: " + invoiceId);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_INVOICE, invoiceId);
                 });
         
         if (invoice.getStatus() == InvoiceStatus.PAID) {
             logger.warn("Failed to mark as paid: Invoice ID {} is already paid", invoiceId);
-            throw new RuntimeException("Invoice is already paid");
+            throw new BusinessLogicException("Invoice is already paid");
         }
         
         invoice.setStatus(InvoiceStatus.PAID);
@@ -240,10 +258,12 @@ public class InvoiceService {
     @Transactional(readOnly = true)
     public InvoiceDTO getInvoiceById(Long id) {
         logger.debug("Fetching invoice with ID: {}", id);
+        ValidationUtil.requireNonNull(id, "id");
+        
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.error("Invoice not found with ID: {}", id);
-                    return new RuntimeException("Invoice not found with id: " + id);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_INVOICE, id);
                 });
         logger.debug("Successfully retrieved invoice with ID: {}", id);
         return toDTO(invoice);
@@ -252,10 +272,12 @@ public class InvoiceService {
     @Transactional(readOnly = true)
     public InvoiceDTO getInvoiceByNumber(String invoiceNumber) {
         logger.debug("Fetching invoice with number: {}", invoiceNumber);
+        ValidationUtil.requireNonBlank(invoiceNumber, "invoiceNumber");
+        
         Invoice invoice = invoiceRepository.findByInvoiceNumber(invoiceNumber)
                 .orElseThrow(() -> {
                     logger.error("Invoice not found with number: {}", invoiceNumber);
-                    return new RuntimeException("Invoice not found with number: " + invoiceNumber);
+                    return new EntityNotFoundException(Constants.AUDIT_ENTITY_INVOICE, invoiceNumber);
                 });
         logger.debug("Successfully retrieved invoice with number: {}", invoiceNumber);
         return toDTO(invoice);
@@ -295,6 +317,11 @@ public class InvoiceService {
     public PageResponse<InvoiceDTO> getAllInvoicesPaginated(InvoiceFilterRequest filter, int page, int size, String sortBy, String sortDir) {
         logger.debug("Fetching invoices with pagination - page: {}, size: {}, sortBy: {}, sortDir: {}", page, size, sortBy, sortDir);
         
+        // Validate and normalize pagination parameters
+        int[] pagination = ValidationUtil.validateAndNormalizePagination(page, size);
+        int normalizedPage = pagination[0];
+        int normalizedSize = pagination[1];
+        
         // Default sorting
         Sort sort = Sort.by(Sort.Direction.DESC, "issuedDate");
         if (sortBy != null && !sortBy.isEmpty()) {
@@ -304,7 +331,7 @@ public class InvoiceService {
             sort = Sort.by(direction, sortBy);
         }
         
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable = PageRequest.of(normalizedPage, normalizedSize, sort);
         
         // Build specification for filtering
         Specification<Invoice> spec = InvoiceSpecification.withFilters(filter);

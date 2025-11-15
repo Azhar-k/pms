@@ -107,8 +107,10 @@ public class GuestController {
             filter.setIdentificationType(identificationType);
             filter.setSearchTerm(searchTerm);
             
-            int pageNum = page != null ? page : 0;
-            int pageSize = size != null ? size : 10;
+            // Validate pagination parameters
+            int[] pagination = com.klm.pms.util.ValidationUtil.validateAndNormalizePagination(page, size);
+            int pageNum = pagination[0];
+            int pageSize = pagination[1];
             
             logger.info("GET /api/guests - Fetching guests with pagination - page: {}, size: {}", pageNum, pageSize);
             PageResponse<GuestDTO> response = guestService.getAllGuestsPaginated(filter, pageNum, pageSize, sortBy, sortDir);
