@@ -23,7 +23,7 @@ services:
   app:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: test-setup/Dockerfile
     container_name: pms-app-test
     depends_on:
       postgres:

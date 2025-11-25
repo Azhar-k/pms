@@ -17,10 +17,10 @@ cd "$PROJECT_ROOT"
 echo "Waiting for PostgreSQL to be ready..."
 timeout=60
 elapsed=0
-while ! docker compose -f docker/docker-compose.yml exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
+while ! docker compose -f test-setup/docker-compose.yml exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
     if [ $elapsed -ge $timeout ]; then
         echo "ERROR: PostgreSQL failed to start within ${timeout} seconds"
-        docker compose -f docker/docker-compose.yml logs postgres
+        docker compose -f test-setup/docker-compose.yml logs postgres
         exit 1
     fi
     sleep 2
@@ -35,7 +35,7 @@ elapsed=0
 while ! curl -f http://localhost:8081/api/guests > /dev/null 2>&1; do
     if [ $elapsed -ge $timeout ]; then
         echo "ERROR: Application failed to start within ${timeout} seconds"
-        docker compose -f docker/docker-compose.yml logs app
+        docker compose -f test-setup/docker-compose.yml logs app
         exit 1
     fi
     sleep 3

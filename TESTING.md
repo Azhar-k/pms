@@ -39,7 +39,7 @@ The script will:
 4. Run integration tests
 5. Clean up containers automatically
 
-See [docker/README-DOCKER-TESTING.md](docker/README-DOCKER-TESTING.md) for detailed Docker setup instructions.
+See [docker/README-DOCKER-TESTING.md](test-setup/README-DOCKER-TESTING.md) for detailed Docker setup instructions.
 
 ### Option B: Manual Setup
 

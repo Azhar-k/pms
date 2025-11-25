@@ -11,7 +11,7 @@ The Docker setup includes:
 ## Prerequisites
 
 1. **Docker** and **Docker Compose** installed
-   - Docker: https://docs.docker.com/get-docker/
+   - Docker: https://docs.docker.com/get-test-setup/
    - Docker Compose: Usually included with Docker Desktop
 
 2. Verify Docker is running:
@@ -26,8 +26,8 @@ The Docker setup includes:
 
 **Linux/Mac:**
 ```bash
-chmod +x docker/docker-test.sh
-./docker/docker-test.sh
+chmod +x test-setup/docker-test.sh
+./test-setup/docker-test.sh
 ```
 
 **Windows:**
@@ -38,11 +38,11 @@ docker\docker-test.bat
 **Skip Docker Build (use existing images):**
 ```bash
 # Linux/Mac
-./docker/docker-test.sh --skip-build
+./test-setup/docker-test.sh --skip-build
 # or
-./docker/docker-test.sh -s
+./test-setup/docker-test.sh -s
 # or via environment variable
-SKIP_DOCKER_BUILD=true ./docker/docker-test.sh
+SKIP_DOCKER_BUILD=true ./test-setup/docker-test.sh
 
 # Windows
 docker\docker-test.bat --skip-build
@@ -65,16 +65,16 @@ The script will:
 **1. Build and start containers:**
 ```bash
 # Build and start (rebuilds images)
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f test-setup/docker-compose.yml up -d --build
 
 # Or start without rebuilding (uses existing images)
-docker compose -f docker/docker-compose.yml up -d
+docker compose -f test-setup/docker-compose.yml up -d
 ```
 
 **2. Wait for services to be ready:**
 ```bash
 # Check PostgreSQL
-docker compose -f docker/docker-compose.yml exec postgres pg_isready -U postgres
+docker compose -f test-setup/docker-compose.yml exec postgres pg_isready -U postgres
 
 # Check Application (wait until it responds)
 curl http://localhost:8081/api/guests
@@ -87,7 +87,7 @@ mvn clean test
 
 **4. Stop and cleanup:**
 ```bash
-docker compose -f docker/docker-compose.yml down -v
+docker compose -f test-setup/docker-compose.yml down -v
 ```
 
 ## Port Configuration
@@ -99,7 +99,7 @@ The containers use different ports to avoid conflicts:
 | PostgreSQL | 5432 | **5433** |
 | Application | 8080 | **8081** |
 
-You can change these ports by modifying `docker/docker-compose.yml`:
+You can change these ports by modifying `test-setup/docker-compose.yml`:
 ```yaml
 services:
   postgres:
@@ -138,46 +138,46 @@ You can override these via:
 - **Health Check**: `pg_isready`
 
 ### Application Service
-- **Build**: Uses `docker/Dockerfile` (multi-stage build)
+- **Build**: Uses `test-setup/Dockerfile` (multi-stage build)
 - **Depends on**: PostgreSQL (waits for health check)
 - **Health Check**: HTTP endpoint check
-- **Environment**: Configured via `docker/docker-compose.yml`
+- **Environment**: Configured via `test-setup/docker-compose.yml`
 
 ## Troubleshooting
 
 ### Containers won't start
 ```bash
 # Check logs
-docker compose -f docker/docker-compose.yml logs
+docker compose -f test-setup/docker-compose.yml logs
 
 # Check specific service
-docker compose -f docker/docker-compose.yml logs app
-docker compose -f docker/docker-compose.yml logs postgres
+docker compose -f test-setup/docker-compose.yml logs app
+docker compose -f test-setup/docker-compose.yml logs postgres
 ```
 
 ### Port already in use
 If ports 5433 or 8081 are already in use:
-1. Change ports in `docker/docker-compose.yml`
+1. Change ports in `test-setup/docker-compose.yml`
 2. Update `TestConfig.java` or set environment variables
 3. Or stop the conflicting service
 
 ### Application fails to connect to database
-- Ensure PostgreSQL container is healthy: `docker compose -f docker/docker-compose.yml ps`
-- Check database connection string in `docker/docker-compose.yml`
-- Verify network connectivity: `docker compose -f docker/docker-compose.yml exec app ping postgres`
+- Ensure PostgreSQL container is healthy: `docker compose -f test-setup/docker-compose.yml ps`
+- Check database connection string in `test-setup/docker-compose.yml`
+- Verify network connectivity: `docker compose -f test-setup/docker-compose.yml exec app ping postgres`
 
 ### Tests timeout waiting for application
 - Increase timeout in test script
-- Check application logs: `docker compose -f docker/docker-compose.yml logs app --tail=100`
+- Check application logs: `docker compose -f test-setup/docker-compose.yml logs app --tail=100`
 - Verify application health: `curl http://localhost:8081/api/guests`
 
 ### Clean up everything
 ```bash
 # Stop and remove containers, networks, and volumes
-docker compose -f docker/docker-compose.yml down -v
+docker compose -f test-setup/docker-compose.yml down -v
 
 # Remove images (optional)
-docker compose -f docker/docker-compose.yml down --rmi all
+docker compose -f test-setup/docker-compose.yml down --rmi all
 
 # Remove all unused Docker resources (be careful!)
 docker system prune -a
@@ -185,7 +185,7 @@ docker system prune -a
 
 ## Dockerfile Details
 
-The `docker/Dockerfile` uses a multi-stage build:
+The `test-setup/Dockerfile` uses a multi-stage build:
 1. **Build stage**: Uses Maven to compile and package the application
 2. **Runtime stage**: Uses JRE-only image (smaller footprint)
 
@@ -199,39 +199,39 @@ For CI/CD pipelines, you can use:
 # Example GitHub Actions
 - name: Run Docker tests
   run: |
-    docker compose -f docker/docker-compose.yml up -d --build
-    ./docker/wait-for-services.sh  # Custom script to wait
+    docker compose -f test-setup/docker-compose.yml up -d --build
+    ./test-setup/wait-for-services.sh  # Custom script to wait
     mvn test
-    docker compose -f docker/docker-compose.yml down -v
+    docker compose -f test-setup/docker-compose.yml down -v
 ```
 
 ## Manual Container Management
 
 **View running containers:**
 ```bash
-docker compose -f docker/docker-compose.yml ps
+docker compose -f test-setup/docker-compose.yml ps
 ```
 
 **View logs:**
 ```bash
-docker compose -f docker/docker-compose.yml logs -f app
-docker compose -f docker/docker-compose.yml logs -f postgres
+docker compose -f test-setup/docker-compose.yml logs -f app
+docker compose -f test-setup/docker-compose.yml logs -f postgres
 ```
 
 **Execute commands in container:**
 ```bash
-docker compose -f docker/docker-compose.yml exec app sh
-docker compose -f docker/docker-compose.yml exec postgres psql -U postgres -d pms
+docker compose -f test-setup/docker-compose.yml exec app sh
+docker compose -f test-setup/docker-compose.yml exec postgres psql -U postgres -d pms
 ```
 
 **Restart services:**
 ```bash
-docker compose -f docker/docker-compose.yml restart
+docker compose -f test-setup/docker-compose.yml restart
 ```
 
 **Rebuild and restart:**
 ```bash
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose -f test-setup/docker-compose.yml up -d --build
 ```
 
 ## Environment Variables
@@ -244,7 +244,7 @@ export TEST_API_PORT=8081
 mvn test
 ```
 
-Or in `docker/docker-compose.yml` for the application:
+Or in `test-setup/docker-compose.yml` for the application:
 ```yaml
 environment:
   SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pms

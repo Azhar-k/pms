@@ -985,7 +985,7 @@ public class GuestControllerIntegrationTest extends TestConfig {
                 .when()
                 .get("/guests/{id}", guestIdToDelete)
                 .then()
-                .statusCode(400); // Should return 400 as guest doesn't exist (via GlobalExceptionHandler)
+                .statusCode(404); // Should return 404 as guest doesn't exist (via GlobalExceptionHandler)
     }
 
     @Test

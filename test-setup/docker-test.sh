@@ -40,7 +40,7 @@ NC='\033[0m' # No Color
 # Function to cleanup
 cleanup() {
     echo -e "\n${YELLOW}Cleaning up Docker containers...${NC}"
-    docker compose -f docker/docker-compose.yml down -v
+    docker compose -f test-setup/docker-compose.yml down -v
     echo -e "${GREEN}Cleanup completed${NC}"
 }
 
@@ -52,20 +52,20 @@ if [ "$SKIP_BUILD" = true ]; then
     echo -e "${YELLOW}Step 1: Skipping Docker image build (using existing images)...${NC}"
 else
     echo -e "${YELLOW}Step 1: Building Docker images...${NC}"
-    docker compose -f docker/docker-compose.yml build
+    docker compose -f test-setup/docker-compose.yml build
 fi
 
 echo -e "\n${YELLOW}Step 2: Starting Docker containers...${NC}"
-docker compose -f docker/docker-compose.yml up -d
+docker compose -f test-setup/docker-compose.yml up -d
 
 echo -e "\n${YELLOW}Step 3: Waiting for services to be healthy...${NC}"
 echo "Waiting for PostgreSQL..."
 timeout=60
 elapsed=0
-while ! docker compose -f docker/docker-compose.yml exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
+while ! docker compose -f test-setup/docker-compose.yml exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do
     if [ $elapsed -ge $timeout ]; then
         echo -e "${RED}PostgreSQL failed to start within ${timeout} seconds${NC}"
-        docker compose -f docker/docker-compose.yml logs postgres
+        docker compose -f test-setup/docker-compose.yml logs postgres
         exit 1
     fi
     sleep 2
@@ -85,7 +85,7 @@ while ! curl -f -s http://localhost:8081/health > /dev/null 2>&1; do
     if [ $elapsed -ge $timeout ]; then
         echo -e "\n${RED}Application failed to start within ${timeout} seconds${NC}"
         echo -e "${YELLOW}Application logs:${NC}"
-        docker compose -f docker/docker-compose.yml logs app --tail=50
+        docker compose -f test-setup/docker-compose.yml logs app --tail=50
         exit 1
     fi
     sleep 3
@@ -116,7 +116,7 @@ fi
 # Show container logs if tests failed
 if [ $TEST_RESULT -ne 0 ]; then
     echo -e "\n${YELLOW}Application logs:${NC}"
-    docker compose -f docker/docker-compose.yml logs app --tail=50
+    docker compose -f test-setup/docker-compose.yml logs app --tail=50
 fi
 
 exit $TEST_RESULT

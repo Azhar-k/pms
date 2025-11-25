@@ -32,7 +32,7 @@ REM Function to cleanup
 :cleanup
 echo.
 echo Cleaning up Docker containers...
-docker compose -f docker/docker-compose.yml down -v
+docker compose -f test-setup/docker-compose.yml down -v
 echo Cleanup completed
 goto :eof
 
@@ -44,7 +44,7 @@ if "%SKIP_BUILD%"=="true" (
     echo Step 1: Skipping Docker image build (using existing images)...
 ) else (
     echo Step 1: Building Docker images...
-    docker compose -f docker/docker-compose.yml build
+    docker compose -f test-setup/docker-compose.yml build
     if errorlevel 1 (
         echo Error building Docker images
         call :cleanup
@@ -54,7 +54,7 @@ if "%SKIP_BUILD%"=="true" (
 
 echo.
 echo Step 2: Starting Docker containers...
-docker compose -f docker/docker-compose.yml up -d
+docker compose -f test-setup/docker-compose.yml up -d
 if errorlevel 1 (
     echo Error starting Docker containers
     call :cleanup
@@ -67,7 +67,7 @@ echo Waiting for PostgreSQL...
 set TIMEOUT=60
 set ELAPSED=0
 :wait_postgres
-docker compose -f docker/docker-compose.yml exec -T postgres pg_isready -U postgres >nul 2>&1
+docker compose -f test-setup/docker-compose.yml exec -T postgres pg_isready -U postgres >nul 2>&1
 if errorlevel 1 (
     if !ELAPSED! geq !TIMEOUT! (
         echo PostgreSQL failed to start within !TIMEOUT! seconds
@@ -89,7 +89,7 @@ curl -f http://localhost:8081/api/guests >nul 2>&1
 if errorlevel 1 (
     if !ELAPSED! geq !TIMEOUT! (
         echo Application failed to start within !TIMEOUT! seconds
-        docker compose -f docker/docker-compose.yml logs app
+        docker compose -f test-setup/docker-compose.yml logs app
         call :cleanup
         exit /b 1
     )
@@ -118,7 +118,7 @@ if %TEST_RESULT% equ 0 (
     echo ==========================================
     echo.
     echo Application logs:
-    docker compose -f docker/docker-compose.yml logs app --tail=50
+    docker compose -f test-setup/docker-compose.yml logs app --tail=50
 )
 
 call :cleanup
