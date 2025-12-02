@@ -8,25 +8,19 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  SERVICE_NAME: property-service
-  # Define GHCR as the registry
-  REGISTRY: ghcr.io
-  # The image name uses the repository owner and service name
-  IMAGE_NAME: ${{ github.repository_owner }}/${{ env.SERVICE_NAME }}
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    env:
-      SERVICE_NAME: property-service # <--- This is where it should be defined
-      REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository_owner }}/${{ env.SERVICE_NAME }}
-
     # Required for GITHUB_TOKEN to push to GHCR
     permissions:
       contents: read
       packages: write
+    env:
+      SERVICE_NAME: property-service
+      # Define GHCR as the registry
+      REGISTRY: ghcr.io
+      # The image name uses the repository owner and service name
+      IMAGE_NAME: ${{ github.repository_owner }}/${{ env.SERVICE_NAME }}
 
     steps:
       - name: ⬇️ Checkout Repository
