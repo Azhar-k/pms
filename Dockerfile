@@ -14,12 +14,16 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # Stage 2: The Runtime Stage (Minimal Java 17 JRE for running)
-# Use a JRE-only image for a smaller, more secure final image
-FROM eclipse-temurin:17-jre-alpine
+# Use a JRE-only image that supports both AMD64 and ARM64 platforms
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
+# Install wget for healthcheck (as root, before switching to non-root user)
+RUN apt-get update && apt-get install -y --no-install-recommends wget && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user for security
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN groupadd -r spring && useradd -r -g spring spring
 USER spring:spring
 
 # Copy the final executable JAR from the build stage
