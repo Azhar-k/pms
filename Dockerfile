@@ -1,16 +1,22 @@
-# Stage 1: build
-FROM maven:3.8.8-eclipse-temurin-17 AS builder
+# Stage 1: The Build Stage (Java 17 SDK for compilation)
+FROM maven:3.9.5-eclipse-temurin-17 AS build
 WORKDIR /app
-COPY pom.xml .
-# copy modules if needed, but simplest: copy whole module
-COPY src ./src
-RUN mvn -B -DskipTests package
 
-# Stage 2: runtime
-FROM eclipse-temurin:17-jre-jammy
-ARG JAR_FILE=/app/target/*.jar
-COPY --from=builder /app/target/*.jar /app/app.jar
-EXPOSE 8080
-# Optional: pass JAVA_OPTS via env variable
-ENV JAVA_OPTS="-Xms256m -Xmx512m"
-ENTRYPOINT [ "sh", "-c", "java $JAVA_OPTS -jar /app/app.jar" ]
+# Copy the Maven project files first to leverage Docker cache
+COPY pom.xml .
+COPY src ./src
+
+# Compile, test, and package the application into a JAR
+# The '-B' is for non-interactive (batch) mode
+RUN mvn clean package -DskipTests
+
+# Stage 2: The Runtime Stage (Minimal Java 17 JRE for running)
+# Use a JRE-only image for a smaller, more secure final image
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+# Copy the final executable JAR from the build stage
+COPY --from=build /app/target/*.jar app.jar
+
+# Command to run the application when the container starts
+ENTRYPOINT ["java", "-jar", "app.jar"]
