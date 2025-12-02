@@ -18,7 +18,11 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
+    env:
+      SERVICE_NAME: property-service # <--- This is where it should be defined
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository_owner }}/${{ env.SERVICE_NAME }}
+
     # Required for GITHUB_TOKEN to push to GHCR
     permissions:
       contents: read
